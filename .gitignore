@@ -1,0 +1,9 @@
+release/*
+debug/*
+vendor/*
+*.autosave
+assert.log
+bench.log
+log.log
+export.zip
+
