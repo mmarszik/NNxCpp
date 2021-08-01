@@ -7,7 +7,7 @@
 QT       += core
 QT       -= gui
 
-TARGET = _nn00
+TARGET = NNxCpp
 CONFIG   += console
 CONFIG   -= app_bundle
 CONFIG   += c++11

@@ -52,6 +52,7 @@ struct NNValue {
     bool force;
 };
 
+
 void experiment0() {
     QTextStream stdOut(stdout);
 
@@ -67,55 +68,33 @@ void experiment0() {
     const time_t start = time(NULL);
     nnftyp bigPenal = 1E-12;
 
-    QVector< NNValue > vnn;
-
-    //Select best 16 nn
-    {
-        CNNData subLearn = learn.rndSelect(2000,rnd);
-        for( nnityp loop=0 ; loop<20000 ; loop++ ) {
-            NNValue nn;
-            nn.nn.read("/home/m/Dokumenty/c/nn/nn00/nndef.txt" );
-            nn.nn.randIdxW( rnd , -1 , +1 );
-            nn.value = nn.nn.error( subLearn , bigPenal );
-            vnn.append( nn );
-            for( nnityp i = vnn.size()-1 ; i > 0 && vnn[i].value < vnn[i-1].value ; i-- ) {
-                std::swap( vnn[i] , vnn[i-1] );
-            }
-            if( vnn.size() > 16 ) {
-                vnn.resize( 16 );
-            }
-            stdOut << "loop=" << loop << " current=" << nn.value << " best=" << vnn[0].value << " time=" << (time(NULL)-start) << "s" << endl;
-        }
-    }
-
-    for( nnityp i=0 ; i<vnn.size() ; i++ ) {
-        stdOut << " i=" << i << " value=" << vnn[i].value << " test=" << classify( test , vnn[i].nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-    }
-
     NNNet nn;
+    nn.read("nndef.txt" );
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+
     {
-        for( nnityp i=0 ; i<vnn.size() ; i++ ) {
-            vnn[i].nn.forceIdx( learn , bigPenal , 1 , true );
-            vnn[i].value = vnn[i].nn.error( learn , bigPenal );
-            stdOut << " i=" << i << " value=" << vnn[i].value << " test=" << classify( test , vnn[i].nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        CNNData subLearn = learn.rndSelect( 1000 , rnd );
+        nnftyp v = nn.error( learn, bigPenal );
+        for( nnityp loop=1 ; loop<=5000 ; loop++ ) {
+            NNNet nnTmp;
+            nnTmp.read("nndef.txt" );
+            nnTmp.randIdxW(rnd,-1,+1);
+            nncftyp vTmp = nnTmp.error( subLearn, bigPenal );
+            if( vTmp < v ) {
+                v = vTmp;
+                nn = nnTmp;
+            }
+            stdOut << "loop=" << loop << " current=" << vTmp << " best=" << v << " time=" << (time(NULL)-start) << "s" << endl;
         }
-        std::sort( vnn.begin(), vnn.end(), [](const NNValue &a, const NNValue &b){ return a.value < b.value;} );
-        stdOut << "summary:" << endl;
-        for( nnityp i=0 ; i<vnn.size() ; i++ ) {
-            stdOut << " i=" << i << " value=" << vnn[i].value << " test=" << classify( test , vnn[i].nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-        }
-        nn = vnn[0].nn;
     }
 
-    //learn 4 nn.
+    nn.save("nndef_out.txt" );
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+
     for( nnityp loop=1 ; true ; loop++ ) {
-        if( loop==6 ) {
-            nn.toUniqueWeights();
-        }
-        nn.learnRand1( learn, bigPenal, 1200, 0, 1E-6, 1E-2, 1, rnd(), loop>3, loop<6, false );
-        nn.momentum2( learn , CNNData(), 0, 5E2, 0.01, 0.1, 1E-8, 0.8, CTVFlt(), bigPenal, 5, 1, nullptr);
-        stdOut << " loop=" << loop << " learn_error=" << nn.error( learn , bigPenal ) << " test=" << classify(test,nn) << "%  time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+        nn.learnRand1( learn, bigPenal, 600, 0, 1E-6, 1E-2, 1, rnd(), false, true, false );
+        stdOut << "loop=" << loop << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save("nndef_out.txt" );
     }
 
 }
@@ -168,13 +147,12 @@ void experiment1() {
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
 
-
 }
 
 
 int main(int argc, char *argv[])
 {
-    experiment1();
+    experiment0();
     return 0;
 }
 
