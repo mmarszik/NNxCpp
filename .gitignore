@@ -1,6 +1,9 @@
 release/*
 debug/*
+Release/*
+Debug/*
 vendor/*
+Vendor/*
 *.autosave
 assert.log
 bench.log
