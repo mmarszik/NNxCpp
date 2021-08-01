@@ -444,7 +444,7 @@ void NNNet::momentum2(
                 er1 = er2;
                 fails = 0;
                 if( ++success >= 1 ) {
-                    step *= 1.10;
+                    step *= 1.20;
                 }
                 if( step > maxStep ) {
                     step = maxStep;
@@ -707,7 +707,6 @@ int NNNet::subForceIdx(
     if( sumParts > data.size() ) {
         abort();
     }
-
 
     TVFlt ers( parts.size() );
     TVFlt tmpErs( parts.size() );
