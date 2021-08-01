@@ -689,7 +689,14 @@ int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool
     return increse;
 }
 
-int NNNet::subForceIdx( NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp maxLoops, nncityp rndSeed ) {
+int NNNet::subForceIdx(
+    NNData &data,
+    nncftyp bigPenal,
+    CTVInt &parts,
+    nncityp maxTime,
+    nncityp maxFails,
+    nncityp rndSeed
+) {
     FRnd rnd(rndSeed);
 
     nnityp sumParts = 0;
@@ -707,10 +714,16 @@ int NNNet::subForceIdx( NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp m
 
     int increse = 0;
     QTextStream stdOut(stdout);
-    stdOut.setRealNumberPrecision(10);
+    stdOut.setRealNumberPrecision(6);
     stdOut.setRealNumberNotation( QTextStream::FixedNotation );
-    for( nnityp loop=0 ; loop<maxLoops ; loop ++ ) {
 
+    const time_t start = time(NULL);
+    time_t lastError = start;
+    time_t currTime  = start;
+    nnftyp buffError = error( data , bigPenal );
+    nnityp fails = 0;
+
+    for( nnityp loop=0 ; fails < maxFails && ( maxTime == 0 || (currTime - start) <= maxTime ) ; loop ++ ) {
         data.shuffle(rnd);
         nnityp sum = 0;
         for( nnityp i=0 ; i<parts.size() ; i++ ) {
@@ -723,10 +736,10 @@ int NNNet::subForceIdx( NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp m
 
         bool work = false;
 
-        for( nnityp i=0 ; i<neurons.size() ; i++ ) {
+        for( nnityp i=0 ; i<neurons.size() && ( maxTime == 0 || (currTime - start) <= maxTime ) ; i++ ) {
             NNNeuron &n = neurons[i];
             TVInt idx_w = n.idx_w;
-            for( nnityp j=0 ; j<idx_w.size() ; j++ ) {
+            for( nnityp j=0 ; j<idx_w.size() ; j++ ) {                
                 nnityp best = n.idx_w[j];
                 nncityp oldBest = best;
                 for( nnityp k=n.min_w ; k<=n.max_w ; k++ ) {
@@ -747,7 +760,12 @@ int NNNet::subForceIdx( NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp m
                     }
                 }
                 n.idx_w[j] = best;
+                currTime = time(NULL);
                 if( oldBest != best ) {
+                    if( currTime - lastError > 10 ) {
+                        lastError = currTime;
+                        buffError = error( data, bigPenal );
+                    }
                     stdOut << qSetFieldWidth(4) << loop;
                     stdOut << qSetFieldWidth(0) << ") ";
                     stdOut << qSetFieldWidth(4) << i;
@@ -757,18 +775,22 @@ int NNNet::subForceIdx( NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp m
                     stdOut << qSetFieldWidth(4) << best;
                     stdOut << qSetFieldWidth(0) << " ";
                     stdOut << qSetFieldWidth(0) << "[";
-                    stdOut << qSetFieldWidth(13) << error( data, bigPenal );
+                    stdOut << qSetFieldWidth(9) << buffError;
                     stdOut << qSetFieldWidth(0) << "] ";
                     for( nnityp i=0 ; i<ers.size() ; i++ ) {
-                        stdOut << qSetFieldWidth(13) << ers[i];
+                        stdOut << qSetFieldWidth(9) << ers[i];
                         stdOut << qSetFieldWidth(0) << " ";
                     }
+                    stdOut << qSetFieldWidth(0) << " ";
+                    stdOut << qSetFieldWidth(0) << (currTime-start);
+                    stdOut << qSetFieldWidth(0) << "s";
                     stdOut << endl;
                 }
             }
         }
-        if( ! work )
-            break;
+        if( ! work ) {
+            fails ++ ;
+        }
     }
     return increse;
 }

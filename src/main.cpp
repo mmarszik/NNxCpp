@@ -75,7 +75,7 @@ void experiment0() {
     {
         CNNData subLearn = learn.rndSelect( 1000 , rnd );
         nnftyp v = nn.error( learn, bigPenal );
-        for( nnityp loop=1 ; loop<=5000 ; loop++ ) {
+        for( nnityp loop=1 ; loop<=100 ; loop++ ) {
             NNNet nnTmp;
             nnTmp.read("nndef.txt" );
             nnTmp.randIdxW(rnd,-1,+1);
@@ -90,6 +90,20 @@ void experiment0() {
 
     nn.save("nndef_out.txt" );
     stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+
+    {
+        CTVInt parts = {200,200};
+        nn.subForceIdx( learn , bigPenal , parts , 600 , 3 , rnd() );
+        nn.save("nndef_out.txt" );
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    }
+
+    {
+        CTVInt parts = {1000,1000};
+        nn.subForceIdx( learn , bigPenal , parts , 3600 , 3 , rnd() );
+        nn.save("nndef_out.txt" );
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    }
 
     for( nnityp loop=1 ; true ; loop++ ) {
         nn.learnRand1( learn, bigPenal, 600, 0, 1E-6, 1E-2, 1, rnd(), false, true, false );
@@ -117,35 +131,35 @@ void experiment1() {
     nnftyp bigPenal = 1E-12;
 
     NNNet nn;
-    nn.read("/home/m/Dokumenty/c/nn/nn00/nndef.txt" );
+    nn.read("nndef.txt" );
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
     nn.randIdxW( rnd , -1 , +1 );
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
     nn.forceIdx( learn , bigPenal , 1E6 , true );
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
     nn.learnRand1( learn, bigPenal, 3600, 0, 1E-6, 1E-2, 1, rnd(), false, true, false );
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
     nn.momentum2( learn , CNNData(), 0, 5E3, 0.01, 1, 1E-8, 0.8, CTVFlt(), bigPenal, 5, 1, nullptr);
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
     nn.toUniqueWeights();
 
     nn.learnRand1( learn, bigPenal, 3*3600, 0, 1E-6, 1E-2, 1, rnd(), true, false, false );
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
     nn.momentum2( learn , CNNData(), 0, 5E3, 0.01, 1, 1E-8, 0.8, CTVFlt(), bigPenal, 5, 1, nullptr);
     stdOut << " current=" << nn.error(learn,bigPenal) << " test=" << classify(test,nn) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "/home/m/Dokumenty/c/nn/nn00/nndef_out.txt" );
+    nn.save( "nndef_out.txt" );
 
 }
 
