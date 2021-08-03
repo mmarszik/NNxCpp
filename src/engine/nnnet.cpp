@@ -695,7 +695,8 @@ int NNNet::subForceIdx(
     CTVInt &parts,
     nncityp maxTime,
     nncityp maxFails,
-    nncityp rndSeed
+    nncityp rndSeed,
+    const bool show
 ) {
     FRnd rnd(rndSeed);
 
@@ -760,8 +761,8 @@ int NNNet::subForceIdx(
                 }
                 n.idx_w[j] = best;
                 currTime = time(NULL);
-                if( oldBest != best ) {
-                    if( currTime - lastError > 10 ) {
+                if( oldBest != best && show ) {
+                    if( currTime - lastError >= 3 ) {
                         lastError = currTime;
                         buffError = error( data, bigPenal );
                     }
@@ -821,7 +822,7 @@ void NNNet::toUniqueWeights() {
 //MM: Uczenie poprzez losową zmianę idnexów wag (a nie samych wag).
 void NNNet::learnRndIdx(
     CNNData &data ,            //MM: dane uczące
-    nncityp maxLoops ,         //MM: maksymalna ilość iteracji
+    nncityp maxTime ,          //MM: maksymalna ilość czasu
     nncityp maxNotLearn ,      //MM: maksymalna ilość iteracji bez minimalnego spadku błędu
     nncftyp minError ,         //MM: wartość minimalnego spadku błędu
     nncftyp bigpenal ,         //MM: kara za duże wagi
@@ -839,7 +840,7 @@ void NNNet::learnRndIdx(
     time_t lastShow = time(NULL);
     time_t showTime = 1;
     time_t currTime = time(NULL);
-    for( nnityp loop=0 ; loop<maxLoops && (maxNotLearn==0 || notLearn<maxNotLearn) ; loop ++ ) {
+    for( nnityp loop=0 ; currTime <= maxTime && (maxNotLearn==0 || notLearn<maxNotLearn) ; loop ++ ) {
         if( (loop&0xF) == 0 ) {
             currTime = time(NULL);
         }
