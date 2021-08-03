@@ -126,8 +126,8 @@ public:
     void mkNewData( const QString& path, CNNData &data ) const;
     void momentum2(CNNData &learn ,
         CNNData &test ,
+        const time_t maxTime ,
         nncityp maxFailsTest,
-        nncityp loops ,
         nnftyp step,
         nncftyp maxStep,
         nncftyp minStep,
@@ -135,12 +135,11 @@ public:
         CTVFlt &tolearn,
         nncftyp bigpenal,
         nnityp subLoops ,
-        nnityp show,
         NNNet *const best = nullptr
     );
     void learnRndIdx(
         CNNData &data ,            //MM: dane uczące
-        nncityp maxLoops ,         //MM: maksymalna ilość iteracji
+        const time_t maxTime ,     //MM: maksymalna ilość czasu
         nncityp maxNotLearn ,      //MM: maksymalna ilość iteracji bez minimalnego spadku błędu
         nncftyp minError ,         //MM: wartość minimalnego spadek błędu
         nncftyp bigpenal ,         //MM: kara za duże wagi

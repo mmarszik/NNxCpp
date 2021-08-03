@@ -401,10 +401,10 @@ void NNNet::momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom,
 
 
 void NNNet::momentum2(
-    CNNData &learn ,
-    CNNData &test ,
+    CNNData &learn ,         //MM: Data to learn.
+    CNNData &test ,          //MM: Data to test.
+    const time_t maxTime ,
     nncityp maxFailsTest,
-    nncityp loops ,
     nnftyp step,
     nncftyp maxStep,
     nncftyp minStep,
@@ -412,11 +412,10 @@ void NNNet::momentum2(
     CTVFlt &toLearn,
     nncftyp bigPenal,
     nnityp subLoops ,
-    nnityp show,
     NNNet *const best
 ) {
     QTextStream stdOut(stdout);
-    stdOut.setRealNumberPrecision(10);
+    stdOut.setRealNumberPrecision(6);
     stdOut.setRealNumberNotation( QTextStream::FixedNotation );
     TVFlt p( sizeWeights() , 0 );
     nnftyp er1 = error( learn , bigPenal );
@@ -424,12 +423,22 @@ void NNNet::momentum2(
     if( test.size() > 0 ) {
         testError = error( test , bigPenal );
     }
-    nnftyp ng = 0;
     nnityp fails = 0, success = 0, failsTest = 0;
     TVFlt bestWeights = weights;
-    stdOut << "    loop]      error       step        ||gradient||   ||weights||      ||p||       fails" << endl;
+    stdOut << "    loop] learn error";
+    if( test.size() > 0 ) {
+        stdOut << "        test";
+        stdOut << "   best test";
+    }
+    stdOut<< "      step  ||gradient||   ||weights||         ||p||  fails     time" << endl;
     nnityp loop;
-    for( loop = 0 ; loop < loops && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
+    const time_t start = time(NULL);
+    time_t currTime = start;
+    time_t lastShow = currTime;
+    time_t showTime = 1;
+    nnftyp er3 = 0;
+    for( loop = 1 ; (currTime-start) <= maxTime && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
+        currTime = time(NULL);
         rawMomentum( learn , subLoops , step , p , mom , bigPenal , toLearn );
         nncftyp er2 = error( learn , bigPenal );
 
@@ -440,11 +449,12 @@ void NNNet::momentum2(
             fails ++ ;
         } else {
             bestWeights = weights;
+
             if( er2 < er1 ) {
                 er1 = er2;
                 fails = 0;
                 if( ++success >= 1 ) {
-                    step *= 1.20;
+                    step *= 1.10;
                 }
                 if( step > maxStep ) {
                     step = maxStep;
@@ -452,7 +462,7 @@ void NNNet::momentum2(
             }
 
             if( test.size() > 0 ) {
-                nncftyp er3 = error( test , bigPenal );
+                er3 = error( test , bigPenal );
                 if( er3 <= testError ) {
                     failsTest = 0;
                     testError = er3;
@@ -465,14 +475,53 @@ void NNNet::momentum2(
             }
 
         }
-        ng = avgNorm( gradient(learn) );
 
-        if( loop % show == 0 ) {
-            stdOut << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(15) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << fnorm(p)  << qSetFieldWidth(0) << " " << qSetFieldWidth(6) << fails << endl;
+        if( loop == 1 || currTime - lastShow >= showTime ) {
+
+            stdOut << qSetFieldWidth(8) << loop;
+            stdOut << qSetFieldWidth(0) << "] ";
+            stdOut << qSetFieldWidth(11) << qSetRealNumberPrecision(8) << er1;
+            if( test.size() > 0 ) {
+                stdOut << qSetFieldWidth( 0) << " ";
+                stdOut << qSetFieldWidth(11) <<  er3;
+                stdOut << qSetFieldWidth( 0) << " ";
+                stdOut << qSetFieldWidth(11) << testError;
+            }
+            stdOut << qSetFieldWidth(0) << " ";
+            stdOut << qSetFieldWidth(9) << qSetRealNumberPrecision(6) << step;
+            stdOut << qSetFieldWidth(0) << " ";
+            stdOut << qSetFieldWidth(13)<< avgNorm( gradient(learn) );
+            stdOut << qSetFieldWidth(0) << " ";
+            stdOut << qSetFieldWidth(13) << avgNorm(weights);
+            stdOut << qSetFieldWidth(0) << " ";
+            stdOut << qSetFieldWidth(13) << fnorm(p);
+            stdOut << qSetFieldWidth(0) << " ";
+            stdOut << qSetFieldWidth(6) << fails;
+            stdOut << qSetFieldWidth(0) << " ";
+            stdOut << qSetFieldWidth(7) << (currTime-start);
+            stdOut << qSetFieldWidth(0) << "s";
+            stdOut << endl;
+
+            lastShow = currTime;
+            if( currTime - start > 7200 ) {
+                showTime =  60;
+            } else if( currTime - start > 3600 ) {
+                showTime =  30;
+            } else if( currTime - start > 1800 ) {
+                showTime =  20;
+            } else if( currTime - start > 600 ) {
+                showTime =  10;
+            } else if( currTime - start > 120 ) {
+                showTime =   5;
+            } else if( currTime - start >  60 ) {
+                showTime =   2;
+            } else {
+                showTime =   1;
+            }
         }
     }
     weights = bestWeights;
-    stdOut << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(15) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << fnorm(p)  << qSetFieldWidth(0) << " " << qSetFieldWidth(6) << fails << endl;
+
 }
 
 
@@ -822,7 +871,7 @@ void NNNet::toUniqueWeights() {
 //MM: Uczenie poprzez losową zmianę idnexów wag (a nie samych wag).
 void NNNet::learnRndIdx(
     CNNData &data ,            //MM: dane uczące
-    nncityp maxTime ,          //MM: maksymalna ilość czasu
+    const time_t maxTime ,     //MM: maksymalna ilość czasu
     nncityp maxNotLearn ,      //MM: maksymalna ilość iteracji bez minimalnego spadku błędu
     nncftyp minError ,         //MM: wartość minimalnego spadku błędu
     nncftyp bigpenal ,         //MM: kara za duże wagi
@@ -835,12 +884,12 @@ void NNNet::learnRndIdx(
     stdOut.setRealNumberNotation( QTextStream::FixedNotation );
     nnftyp er = error(data, bigpenal );
     NNNet best = *this;
-    nnityp notLearn = 0;
     const time_t start = time(NULL);
-    time_t lastShow = time(NULL);
-    time_t showTime = 1;
     time_t currTime = time(NULL);
-    for( nnityp loop=0 ; currTime <= maxTime && (maxNotLearn==0 || notLearn<maxNotLearn) ; loop ++ ) {
+    time_t lastShow = currTime;
+    time_t lastLearn = currTime;
+    time_t showTime = 1;
+    for( nnityp loop=0 ; currTime <= maxTime && (maxNotLearn==0 || (currTime-lastLearn) <= maxNotLearn) ; loop ++ ) {
         if( (loop&0xF) == 0 ) {
             currTime = time(NULL);
         }
@@ -858,14 +907,10 @@ void NNNet::learnRndIdx(
             if( rnd.getF() < pBack ) {
                 *this = best;
             }
-            notLearn ++ ;
         } else {
             best = *this;
             if( tmp < er - minError ) {
-                notLearn = 0;
-                if( showTime - currTime + lastShow > 10 ) {
-                    showTime = currTime - lastShow + 10;
-                }
+                lastLearn = currTime;
             }
             if( tmp < er ) {
                 er = tmp;
@@ -877,24 +922,24 @@ void NNNet::learnRndIdx(
                 stdOut << qSetFieldWidth(0)  << " ] ";
                 stdOut << qSetFieldWidth(13) << er;
                 stdOut << qSetFieldWidth(0)  << " ";
-                stdOut << qSetFieldWidth(6)  << notLearn;
-                stdOut << qSetFieldWidth(0)  << " ";
+                stdOut << qSetFieldWidth(6)  << (currTime-lastLearn);
+                stdOut << qSetFieldWidth(0)  << "s ";
                 stdOut << qSetFieldWidth(6)  << (currTime-start);
                 stdOut << qSetFieldWidth(0)  << "s" << endl;
 
                 lastShow = currTime;
                 if( currTime - start > 7200 ) {
-                    showTime = 300;
-                } else if( currTime - start > 3600 ) {
-                    showTime = 120;
-                } else if( currTime - start > 1800 ) {
                     showTime =  60;
-                } else if( currTime - start > 600 ) {
+                } else if( currTime - start > 3600 ) {
                     showTime =  30;
-                } else if( currTime - start > 120 ) {
+                } else if( currTime - start > 1800 ) {
+                    showTime =  20;
+                } else if( currTime - start > 600 ) {
                     showTime =  10;
-                } else if( currTime - start >  60 ) {
+                } else if( currTime - start > 120 ) {
                     showTime =   5;
+                } else if( currTime - start >  60 ) {
+                    showTime =   2;
                 } else {
                     showTime =   1;
                 }
