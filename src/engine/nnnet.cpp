@@ -454,7 +454,7 @@ void NNNet::momentum2(
                 er1 = er2;
                 fails = 0;
                 if( ++success >= 1 ) {
-                    step *= 1.10;
+                    step *= 1.20;
                 }
                 if( step > maxStep ) {
                     step = maxStep;
@@ -1008,7 +1008,7 @@ void NNNet::learnRand1(
         } else if( rnd.getF() < 0.5 ) {
             *this = best;
         }
-        if( (loop & 0xF) == 0 ) {
+        if( (loop & 0x0) == 0 ) {
             const time_t tmp = time(NULL);
             while( currTime < tmp) {
                 strenght *= decay;
