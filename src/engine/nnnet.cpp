@@ -454,7 +454,7 @@ void NNNet::momentum2(
                 er1 = er2;
                 fails = 0;
                 if( ++success >= 1 ) {
-                    step *= 1.20;
+                    step *= 1.05;
                 }
                 if( step > maxStep ) {
                     step = maxStep;
@@ -523,6 +523,7 @@ void NNNet::momentum2(
     weights = bestWeights;
 
 }
+
 
 
 
