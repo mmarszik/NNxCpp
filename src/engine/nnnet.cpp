@@ -257,50 +257,56 @@ TVFlt NNNet::gradient( CNNData &data , nncftyp bigpenal ) const {
 TVFlt NNNet::subGradient( CNNData &data , CTVInt &sub ) const {
     CTVFlt gr1 = gradient( data );
     TVFlt gr2( sub.size() );
-    for( nnityp i=0 ; i<sub.size() ; i++ )
+    for( nnityp i=0 ; i<sub.size() ; i++ ) {
         gr2[i] = gr1[sub[i]];
+    }
     return gr2;
 }
 
 static nnftyp fnorm( CTVFlt &v ) {
     nnftyp norm = 0;
-    for( nnityp i=0 ; i<v.size() ; i++ )
+    for( nnityp i=0 ; i<v.size() ; i++ ) {
         norm += v[i] * v[i];
+    }
     return sqrt(norm);
 }
 
 static nnftyp avgNorm( CTVFlt &v ) {
     nnftyp norm = 0;
-    for( nnityp i=0 ; i<v.size() ; i++ )
+    for( nnityp i=0 ; i<v.size() ; i++ ) {
         norm += v[i] * v[i];
+    }
     return sqrt( norm / v.size() );
 }
 
 static void mkNorm( TVFlt &v ) {
     nncftyp n = fnorm(v);
-    for( nnityp i=0 ; i<v.size() ; i++ )
+    for( nnityp i=0 ; i<v.size() ; i++ ) {
         v[i] /= n;
+    }
 }
 
 static TVFlt mkNorm2( CTVFlt &v ) {
     nncftyp n = fnorm(v);
     TVFlt out( v.size() );
-    for( nnityp i=0 ; i<v.size() ; i++ )
+    for( nnityp i=0 ; i<v.size() ; i++ ) {
         out[i] = v[i] / n;
+    }
     return out;
 }
 
 
-static TVFlt& toLearn( TVFlt &gr , CTVFlt &tolearn ) {
-    for( nnityp i=0 ; i<std::min(gr.size(),tolearn.size()) ; i++ )
+static TVFlt& makeToLearn( TVFlt &gr , CTVFlt &tolearn ) {
+    for( nnityp i=0 ; i<std::min(gr.size(),tolearn.size()) ; i++ ) {
         gr[i] *= tolearn[i];
+    }
     return gr;
 }
 
 void NNNet::rawDescent( CNNData &data , nncityp loops , nncftyp step , CTVFlt &tolearn ) {
     for( nnityp loop = 0 ; loop < loops ; loop ++ ) {
         TVFlt gr = gradient( data );
-        toLearn( gr , tolearn );
+        makeToLearn( gr , tolearn );
         mkNorm(gr);
         for( nnityp j=0 ; j<sizeWeights() ; j++ ) {
             weights[j] -= step * gr[j];
@@ -348,10 +354,11 @@ void NNNet::grDescent( CNNData &data , nncityp loops , nncftyp step , CTVFlt &to
 void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn) {
     for( nnityp loop = 0 ; loop < loops ; loop++ ) {
         TVFlt g = gradient(data,bigpenal);
-        toLearn( g , tolearn );
+        makeToLearn( g , tolearn );
         mkNorm( g );
-        for( nnityp i=0 ; i<p.size() ; i++ )
+        for( nnityp i=0 ; i<p.size() ; i++ ) {
             p[i] = p[i] * mom + g[i] * (1.0-mom);
+        }
         for( nnityp i=0 ; i<p.size() ; i++ ) {
             weights[i] -= p[i] * step;
             if( weights[i] > max_w[i] ) weights[i] = max_w[i];
@@ -359,6 +366,26 @@ void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p
         }
     }
 }
+
+//void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn) {
+//    TVFlt d(p.size());
+//    for( nnityp loop = 0 ; loop < loops ; loop++ ) {
+//        TVFlt g = gradient(data,bigpenal);
+//        toLearn( g , tolearn );
+//        mkNorm( g );
+//        for( nnityp i=0 ; i<p.size() ; i++ ) {
+//            d[i] = p[i] = p[i] * mom + g[i] * (1.0-mom);
+//        }
+//        mkNorm( d );
+//        for( nnityp i=0 ; i<p.size() ; i++ ) {
+//            weights[i] -= d[i] * step;
+//            if( weights[i] > max_w[i] ) weights[i] = max_w[i];
+//            if( weights[i] < min_w[i] ) weights[i] = min_w[i];
+//        }
+//    }
+//}
+
+
 
 void NNNet::momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom, CTVFlt &tolearn, nncftyp min_error, nncftyp bigpenal, nnityp subloops , nnityp show) {
     QTextStream stdo(stdout);
@@ -437,6 +464,7 @@ void NNNet::momentum2(
     time_t lastShow = currTime;
     time_t showTime = 1;
     nnftyp er3 = 0;
+    nnftyp stepInc = 1.25;
     for( loop = 1 ; (currTime-start) <= maxTime && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
         currTime = time(NULL);
         rawMomentum( learn , subLoops , step , p , mom , bigPenal , toLearn );
@@ -445,6 +473,7 @@ void NNNet::momentum2(
         if( er2 > er1 ) {
             weights = bestWeights;
             step *= 0.5;
+            stepInc = 1.025;
             success = 0;
             fails ++ ;
         } else {
@@ -454,7 +483,7 @@ void NNNet::momentum2(
                 er1 = er2;
                 fails = 0;
                 if( ++success >= 1 ) {
-                    step *= 1.05;
+                    step *= stepInc;
                 }
                 if( step > maxStep ) {
                     step = maxStep;
@@ -490,7 +519,8 @@ void NNNet::momentum2(
             stdOut << qSetFieldWidth(0) << " ";
             stdOut << qSetFieldWidth(9) << qSetRealNumberPrecision(6) << step;
             stdOut << qSetFieldWidth(0) << " ";
-            stdOut << qSetFieldWidth(13)<< avgNorm( gradient(learn) );
+            TVFlt gr = gradient(learn,bigPenal);
+            stdOut << qSetFieldWidth(13)<< avgNorm( makeToLearn( gr, toLearn ) );
             stdOut << qSetFieldWidth(0) << " ";
             stdOut << qSetFieldWidth(13) << avgNorm(weights);
             stdOut << qSetFieldWidth(0) << " ";
@@ -693,13 +723,18 @@ void NNNet::randIdxW(FRnd &rnd, nncftyp min, nncftyp max, nncityp maxTry) {
     }
 }
 
-
 void NNNet::randWeights( FRnd &rnd , nncftyp min , nncftyp max ) {
     for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
-        if( fabs(max-min) > 0.000001 ) {
+        if( max-min > 0.000001 ) {
             weights[i] = rnd.getF( min , max );
-        } else {
+        } else if( max_w[i] - min_w[i] > 0.000001 ){
             weights[i] = rnd.getF( min_w[i] , max_w[i] );
+        }
+        if( weights[i] < min_w[i] ) {
+            weights[i] = min_w[i];
+        }
+        if( weights[i] > max_w[i] ) {
+            weights[i] = max_w[i];
         }
     }
 }
@@ -773,7 +808,7 @@ int NNNet::subForceIdx(
     nnftyp buffError = error( data , bigPenal );
     nnityp fails = 0;
 
-    for( nnityp loop=0 ; fails < maxFails && ( maxTime == 0 || (currTime - start) <= maxTime ) ; loop ++ ) {
+    for( nnityp loop=0 ; ( maxFails == 0 || fails < maxFails ) && ( maxTime == 0 || (currTime - start) <= maxTime ) ; loop ++ ) {
         data.shuffle(rnd);
         nnityp sum = 0;
         for( nnityp i=0 ; i<parts.size() ; i++ ) {
