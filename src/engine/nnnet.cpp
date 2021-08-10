@@ -880,10 +880,16 @@ int NNNet::subForceIdx(
     return increse;
 }
 
-void NNNet::toUniqueWeights() {
-    TVFlt newWeights;
+void NNNet::toUniqueWeights(nncityp skip) {
+    PEXCP( skip <= sizeWeights() );
+    TVFlt newWeights;    
     TVFlt newMin;
     TVFlt newMax;
+    for( nnityp i=0 ; i<skip ; i++ ) {
+        newWeights.append( weights[i] );
+        newMin.append( min_w[ i ] );
+        newMax.append( max_w[ i ] );
+    }
     for( auto n=neurons.begin() ; n!=neurons.end() ; ++n ) {
         TVInt &idx_w = n->idx_w;
         for( auto w=idx_w.begin() ; w!=idx_w.end() ; ++w ) {

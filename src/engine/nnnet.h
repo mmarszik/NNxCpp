@@ -149,7 +149,7 @@ public:
     void appendWeight(nncftyp weight, nncftyp min_w, nncftyp max_w);
     void extend(nncftyp weight, nncftyp min_w, nncftyp max_w);
     int subForceIdx(NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp maxTime, nncityp maxFails, nncityp rndSeed, const bool show=true);
-    void toUniqueWeights();
+    void toUniqueWeights(nncityp skip=0 );
 };
 
 
