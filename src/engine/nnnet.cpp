@@ -684,6 +684,7 @@ void NNNet::randInputs( FRnd &rnd ) {
             unique.append( r );
             idx_i[j] = r;
         }
+        std::sort( idx_i.begin(), idx_i.end(), [](nncityp &a,nncityp &b){ return a < b;} );
     }
 }
 
@@ -909,6 +910,20 @@ void NNNet::toUniqueWeights(nncityp skip) {
     max_w   = newMax;
 }
 
+void NNNet::setMinWeights(nncftyp min) {
+    PEXCP( min_w.size() == sizeWeights() );
+    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+        min_w[i] = min;
+    }
+}
+
+void NNNet::setMaxWeights(nncftyp max) {
+    PEXCP( max_w.size() == sizeWeights() );
+    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+        max_w[i] = max;
+    }
+}
+
 
 //MM: Uczenie poprzez losową zmianę idnexów wag (a nie samych wag).
 void NNNet::learnRndIdx(
@@ -1047,7 +1062,7 @@ void NNNet::learnRand1(
             }
             er = tmp;
             best = *this;
-        } else if( rnd.getF() < 0.5 ) {
+        } else if( rnd.getF() < 0.25 ) {
             *this = best;
         }
         if( (loop & 0x0) == 0 ) {
@@ -1061,6 +1076,88 @@ void NNNet::learnRand1(
     }
     *this = best;
 }
+
+void NNNet::annealing(
+    CNNData &data ,
+    nncftyp bigPenal,
+    nncityp maxTime,
+    nncftyp minStrength,
+    nncftyp maxStrength,
+    nncftyp pBack,
+    nnityp  rndSeed
+) {
+    QTextStream stdOut(stdout);
+    stdOut.setRealNumberPrecision(8);
+    stdOut.setRealNumberNotation(QTextStream::FixedNotation);
+    FRnd rnd(rndSeed);
+    NNNet best = *this;
+    nnftyp er = error(data,bigPenal);
+    const time_t start = time(NULL);
+    time_t currTime = start;
+    time_t lastShow = start;
+    time_t showTime = 0;
+    nnftyp strenght = maxStrength;
+    nnftyp decay = pow( minStrength / maxStrength , 1.0 / maxTime );
+
+    stdOut << "      loop   strength   learn_error     tmp_error    time" << endl;
+
+    for( nnityp loop=1 ; (currTime-start) <= maxTime ; loop++ ) {
+
+        if( (loop & 0xF) == 0 ) {
+            const time_t tmp = time(NULL);
+            while( currTime < tmp) {
+                strenght *= decay;
+                currTime++;
+            }
+        }
+
+        for( nnityp i=0 ; i<weights.size() ; i++ ) {
+            rnd.chaos( weights[i] , min_w[i] , max_w[i] , strenght );
+        }
+
+        nncftyp tmp = error(data,bigPenal);
+        if( tmp <= er ) {
+            er = tmp;
+            best = *this;
+        } else if( rnd.getF() < pBack ) {
+            *this = best;
+        }
+
+        if( currTime - lastShow >= showTime ) {
+            stdOut << qSetFieldWidth(9)  << loop;
+            stdOut << qSetFieldWidth(0)  << "] ";
+            stdOut << qSetFieldWidth(10) << strenght;
+            stdOut << qSetFieldWidth(0)  << " ";
+            stdOut << qSetFieldWidth(13) << er;
+            stdOut << qSetFieldWidth(0)  << " ";
+            stdOut << qSetFieldWidth(13) << tmp;
+            stdOut << qSetFieldWidth(0)  << " ";
+            stdOut << qSetFieldWidth(6)  << (currTime-start);
+            stdOut << qSetFieldWidth(0)  << "s";
+            stdOut << endl;
+
+            lastShow = currTime;
+            if( currTime - start > 7200 ) {
+                showTime =  60;
+            } else if( currTime - start > 3600 ) {
+                showTime =  30;
+            } else if( currTime - start > 1800 ) {
+                showTime =  20;
+            } else if( currTime - start > 600 ) {
+                showTime =  10;
+            } else if( currTime - start > 120 ) {
+                showTime =   5;
+            } else if( currTime - start >  60 ) {
+                showTime =   2;
+            } else {
+                showTime =   1;
+            }
+        }
+
+    }
+    *this = best;
+}
+
 
 void NNNet::learnRand2(
     NNData  &data,         //MM: Learn and test data.

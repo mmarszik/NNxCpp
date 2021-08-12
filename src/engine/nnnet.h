@@ -150,6 +150,10 @@ public:
     void extend(nncftyp weight, nncftyp min_w, nncftyp max_w);
     int subForceIdx(NNData &data, nncftyp bigPenal, CTVInt &parts, nncityp maxTime, nncityp maxFails, nncityp rndSeed, const bool show=true);
     void toUniqueWeights(nncityp skip=0 );
+    void setMinWeights(nncftyp min);
+    void setMaxWeights(nncftyp max);
+
+    void annealing(CNNData &data, nncftyp bigPenal, nncityp maxTime, nncftyp minStrength, nncftyp maxStrength, nncftyp pBack, nnityp rndSeed);
 };
 
 
