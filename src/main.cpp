@@ -181,7 +181,7 @@ void nextLearn() {
 
             if( loop >= 1 )
             {
-                nn.momentum2( learn , CNNData(), 3000, 0, 1E-3, 1E-3, 1E-12, 0.99, toLearn, bigPenal, 5, nullptr);
+                nn.momentum2( learn , CNNData(), 3000, 0, 1E-4, 1E-4, 1E-12, 0.97, toLearn, bigPenal, 5, nullptr);
                 stdOut << "momentum2;  loop=" << loop;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
