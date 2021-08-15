@@ -9,12 +9,37 @@
 
 namespace NsNet {
 
+static nnftyp factivateMLin( nncftyp inp ) {
+    nnftyp a,b;
+    if     ( inp < -10.0 ) { a=0.01; b=-1.7; }
+    else if( inp < - 3.0 ) { a=0.10; b=-0.8; }
+    else if( inp < - 1.0 ) { a=0.30; b=-0.2; }
+    else if( inp < + 1.0 ) { a=0.50; b= 0.0; }
+    else if( inp < + 3.0 ) { a=0.30; b=+0.2; }
+    else if( inp < +10.0 ) { a=0.10; b=+0.8; }
+    else                   { a=0.01; b=+1.7; }
+    return a * inp + b;
+}
+
+static nnftyp fderivateMLin( nncftyp out ) {
+    if( out > +1.8 ) return 0.01;
+    if( out > +1.1 ) return 0.10;
+    if( out > +0.5 ) return 0.30;
+    if( out > -0.5 ) return 0.50;
+    if( out > -1.1 ) return 0.30;
+    if( out > -1.8 ) return 0.10;
+    return 0.01;
+}
+
+
 // Funkcja aktywacji
 static nnftyp factivate( nncftyp inp, NNActv actv ) {
     switch( actv ) {
         case NNA_LIN:   return inp;
+        case NNA_MLIN:  return factivateMLin(inp);
         case NNA_SUNI:  return 1.0 / ( 1.0 + exp(-inp) );
         case NNA_SBIP:  return 2.0 / ( 1.0 + exp(-inp) ) - 1.0;
+        case NNA_SBIP_L:return 2.0 / ( 1.0 + exp(-inp) ) - 1.0 + inp * 0.001;
         case NNA_RELU:  return log( 1.0 + exp(inp) );
         case NNA_NNAME: return 1.0 / ( 1.0 + fabs(inp) );
     }
@@ -25,11 +50,13 @@ static nnftyp factivate( nncftyp inp, NNActv actv ) {
 static nnftyp fderivate( nncftyp out, NNActv actv ) {
     nnftyp tmp;
     switch( actv ) {
-        case NNA_LIN:   return 1;
-        case NNA_SUNI:  return out * (1.0 - out);
-        case NNA_SBIP:  return 0.5 * (1.0 - out*out);
-        case NNA_RELU:  return 1.0 / ( exp(-out) + 1 );
-        case NNA_NNAME: tmp = fabs( out / ( 1 - fabs(out) ) ) + 1; return 1.0 / ( tmp * tmp );
+        case NNA_LIN:    return 1;
+        case NNA_MLIN:   return fderivateMLin(out);
+        case NNA_SUNI:   return out * (1.0 - out);
+        case NNA_SBIP:   return 0.5 * (1.0 - out*out);
+        case NNA_SBIP_L: return 0.5 * (1.0 - out*out) + 0.001;
+        case NNA_RELU:   return 1.0 / ( exp(-out) + 1 );
+        case NNA_NNAME:  tmp = fabs( out / ( 1 - fabs(out) ) ) + 1; return 1.0 / ( tmp * tmp );
     }
     return 0;
 }
@@ -533,12 +560,14 @@ void NNNet::momentum2(
             stdOut << endl;
 
             lastShow = currTime;
-            if( currTime - start > 7200 ) {
-                showTime =  60;
+            if( currTime - start > 3*3600 ) {
+                showTime =  300;
+            } else if( currTime - start > 2*3600 ) {
+                showTime =  120;
             } else if( currTime - start > 3600 ) {
-                showTime =  30;
+                showTime =  60;
             } else if( currTime - start > 1800 ) {
-                showTime =  20;
+                showTime =  30;
             } else if( currTime - start > 600 ) {
                 showTime =  10;
             } else if( currTime - start > 120 ) {
@@ -1384,7 +1413,7 @@ static QString getString( const QString &label, const QString& line ) {
 }
 
 // Lista funkcji aktywacji.
-const static QStringList strActvs{"lin", "suni", "sbin", "relu", "nname"};
+const static QStringList strActvs{"lin", "mlin", "suni", "sbip", "sbip_l", "relu", "nname"};
 
 // Zwraca funkcję aktywacji neuronu
 static NNActv getActv( QTextStream &finp ) {

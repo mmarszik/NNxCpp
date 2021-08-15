@@ -14,8 +14,10 @@ typedef const NNNeuron CNNNeuron;
 // Typ aktywacji
 enum NNActv {
     NNA_LIN,    // Liniowa
+    NNA_MLIN,   // Liniowa łamana
     NNA_SUNI,   // Sigmoidalna unipolarna
     NNA_SBIP,   // Sigmoidalna bipolarna
+    NNA_SBIP_L, // Sigmoidalna bipolarna + liniowa
     NNA_RELU,   // Softmax
     NNA_NNAME   // No-name
 };
