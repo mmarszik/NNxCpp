@@ -378,39 +378,39 @@ void NNNet::grDescent( CNNData &data , nncityp loops , nncftyp step , CTVFlt &to
     stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << endl;
 }
 
-void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn) {
-    for( nnityp loop = 0 ; loop < loops ; loop++ ) {
-        TVFlt g = gradient(data,bigpenal);
-        makeToLearn( g , tolearn );
-        mkNorm( g );
-        for( nnityp i=0 ; i<p.size() ; i++ ) {
-            p[i] = p[i] * mom + g[i] * (1.0-mom);
-        }
-        for( nnityp i=0 ; i<p.size() ; i++ ) {
-            weights[i] -= p[i] * step;
-            if( weights[i] > max_w[i] ) weights[i] = max_w[i];
-            if( weights[i] < min_w[i] ) weights[i] = min_w[i];
-        }
-    }
-}
-
 //void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn) {
-//    TVFlt d(p.size());
 //    for( nnityp loop = 0 ; loop < loops ; loop++ ) {
 //        TVFlt g = gradient(data,bigpenal);
-//        toLearn( g , tolearn );
+//        makeToLearn( g , tolearn );
 //        mkNorm( g );
 //        for( nnityp i=0 ; i<p.size() ; i++ ) {
-//            d[i] = p[i] = p[i] * mom + g[i] * (1.0-mom);
+//            p[i] = p[i] * mom + g[i] * (1.0-mom);
 //        }
-//        mkNorm( d );
 //        for( nnityp i=0 ; i<p.size() ; i++ ) {
-//            weights[i] -= d[i] * step;
+//            weights[i] -= p[i] * step;
 //            if( weights[i] > max_w[i] ) weights[i] = max_w[i];
 //            if( weights[i] < min_w[i] ) weights[i] = min_w[i];
 //        }
 //    }
 //}
+
+void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn) {
+    TVFlt d(p.size());
+    for( nnityp loop = 0 ; loop < loops ; loop++ ) {
+        TVFlt g = gradient(data,bigpenal);
+        makeToLearn( g , tolearn );
+        mkNorm( g );
+        for( nnityp i=0 ; i<p.size() ; i++ ) {
+            d[i] = p[i] = p[i] * mom + g[i] * (1.0-mom);
+        }
+        mkNorm( d );
+        for( nnityp i=0 ; i<p.size() ; i++ ) {
+            weights[i] -= d[i] * step;
+            if( weights[i] > max_w[i] ) weights[i] = max_w[i];
+            if( weights[i] < min_w[i] ) weights[i] = min_w[i];
+        }
+    }
+}
 
 
 
@@ -494,15 +494,20 @@ void NNNet::momentum2(
     nnftyp stepInc = 1.25;
     for( loop = 1 ; (currTime-start) <= maxTime && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
         currTime = time(NULL);
+        CTVFlt copyP = p;
         rawMomentum( learn , subLoops , step , p , mom , bigPenal , toLearn );
         nncftyp er2 = error( learn , bigPenal );
 
         if( er2 > er1 ) {
             weights = bestWeights;
             step *= 0.5;
-            stepInc = 1.025;
+            stepInc = 1.035;
             success = 0;
             fails ++ ;
+            p = copyP;
+            for( nnityp i=0 ; i<p.size() ; i++ ) {
+                p[i] *= 0.5;
+            }
         } else {
             bestWeights = weights;
 
@@ -1128,7 +1133,7 @@ void NNNet::annealing(
     nnftyp strenght = maxStrength;
     nnftyp decay = pow( minStrength / maxStrength , 1.0 / maxTime );
 
-    stdOut << "      loop   strength   learn_error     tmp_error    time" << endl;
+    stdOut << "      loop   strength   learn_error    curr_error    time" << endl;
 
     for( nnityp loop=1 ; (currTime-start) <= maxTime ; loop++ ) {
 
