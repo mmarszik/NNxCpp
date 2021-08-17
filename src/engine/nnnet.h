@@ -121,7 +121,7 @@ public:
         const bool idx_input
     );
 
-    int forceIdx(CNNData &data , nncftyp bigPenal, nncityp loops , const bool show=true);
+    int forceIdx(CNNData &data , nncftyp bigPenal, nncityp loops , const bool show=true, nncityp rndSeed=1);
     void randIdxW(FRnd &rnd , nncftyp min=0 , nncftyp max=0 , nncityp maxTry=1000);
     void randWeights(FRnd &rnd , nncftyp min=0, nncftyp max=0);
     void randInputs(FRnd &rnd);

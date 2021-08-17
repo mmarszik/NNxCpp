@@ -492,7 +492,7 @@ void NNNet::momentum2(
     time_t showTime = 1;
     nnftyp er3 = 0;
     nnftyp stepInc = 1.25;
-    for( loop = 1 ; (currTime-start) <= maxTime && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
+    for( loop = 1 ; (maxTime==0 || (currTime-start) <= maxTime) && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
         currTime = time(NULL);
         CTVFlt copyP = p;
         rawMomentum( learn , subLoops , step , p , mom , bigPenal , toLearn );
@@ -774,7 +774,8 @@ void NNNet::randWeights( FRnd &rnd , nncftyp min , nncftyp max ) {
     }
 }
 
-int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool show ) {
+int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool show , nncityp rndSeed ) {
+    FRnd rnd(rndSeed);
     int increse = 0;
     QTextStream stdo(stdout);
     stdo.setRealNumberPrecision(8);
@@ -783,7 +784,7 @@ int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool
     for( nnityp loop=0 ; loop<loops ; loop ++ ) {
         bool work = false;
         for( nnityp i=0 ; i<neurons.size() ; i++ ) {
-            NNNeuron &n = neurons[i];
+            NNNeuron &n = neurons[ i ];
             TVInt idx_w = n.idx_w;
             for( nnityp j=0 ; j<idx_w.size() ; j++ ) {
                 nnityp best = n.idx_w[j];

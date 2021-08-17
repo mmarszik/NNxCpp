@@ -245,19 +245,32 @@ void experiment0() {
     FRnd rnd(rndSeed);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-14;
+    nnftyp bigPenal = 1E-11;
 
     NNNet nn;
     nn.read("nndef.txt" );
     stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
 
     {
-        nn.randIdxW(rnd,-1,+1);
+        nn.toUniqueWeights(0);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
 
-    for( nnityp loop=1 ; nn.forceIdx( learn , bigPenal , 1 , true ) ; loop++ ) {
+    {
+        nn.randWeights(rnd,-1,+1);
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+
+//    {
+//        nn.randIdxW(rnd,-1,+1);
+//        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+//        nn.save( "nndef_out.txt" );
+//    }
+
+    for( nnityp loop=1 ; nn.forceIdx( learn , bigPenal , 1 , true , rnd() ) ; loop++ ) {
         stdOut << "forceIdx;   loop=" << loop;
         stdOut << " learn error=" << nn.error( learn , bigPenal );
         stdOut << " test=" << classify( test ,nn ) << "%";
@@ -265,15 +278,9 @@ void experiment0() {
         nn.save("nndef_out.txt" );
     }
 
-    {
-        nn.toUniqueWeights(1);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "nndef_out.txt" );
-    }
-
     for( nnityp loop=1 ; true ; loop++ ) {
         {
-            nn.momentum2( learn , CNNData(), 3000, 0, 1E-3, 1E-1, 1E-9, 0.99, CTVFlt(), bigPenal, 5, nullptr);
+            nn.momentum2( learn , CNNData(), 3000, 0, 1E-3, 1E-2, 1E-9, 0.9, CTVFlt(), bigPenal, 1, nullptr);
             stdOut << "momentum2;  loop=" << loop;
             stdOut << " learn error=" << nn.error( learn , bigPenal );
             stdOut << " test=" << classify( test ,nn ) << "%";
