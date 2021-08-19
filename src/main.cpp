@@ -312,7 +312,7 @@ void experiment1() {
     FRnd rnd(rndSeed);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-7;
+    nnftyp bigPenal = 1E-9;
 
     NNNet nn;
     nn.read("nndef.txt" );
@@ -333,14 +333,21 @@ void experiment1() {
     {
         NNData subLearn,subTest;
         learn.split( subLearn, 70000 , subTest , 10000 , rnd() );
-        NNNet bestNN = nn;
-        nn.momentum2(subLearn , subTest, 48*3600, 200, 1E-3, 1E-2, 1E-9, 0.90, CTVFlt(), bigPenal, 5, &bestNN);
-        nn = bestNN;
-        stdOut << "momentum2;  loop=" << 1;
-        stdOut << " learn error=" << nn.error( learn , bigPenal );
-        stdOut << " test=" << classify( test ,nn ) << "%";
-        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "nndef_out.txt" );
+        for( nnityp loop=1 ; true ; loop++ ) {
+            NNNet bestNN = nn;
+            nncftyp er1 = nn.error( subLearn , bigPenal );
+            nn.momentum2(subLearn , subTest, 900, 500, 1E-4, 1E-4, 1E-9, 0.2, CTVFlt(), bigPenal, 5, &bestNN);
+            nn = bestNN;
+            nncftyp er2 = nn.error( subLearn , bigPenal );
+            stdOut << "momentum2;  loop=" << loop;
+            stdOut << " learn error=" << nn.error( learn , bigPenal );
+            stdOut << " test=" << classify( test ,nn ) << "%";
+            stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+            nn.save( "nndef_out.txt" );
+            if( er1 - er2 < 1E-6 ) {
+                break;
+            }
+        }
     }
 
 }
