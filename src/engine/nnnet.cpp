@@ -482,17 +482,24 @@ void NNNet::momentum2(
     stdOut << "    loop] learn error";
     if( test.size() > 0 ) {
         stdOut << "        test";
-        stdOut << "   best test";
+        stdOut << "   best_test";
     }
     stdOut<< "      step  ||gradient||   ||weights||         ||p||  fails     time" << endl;
-    nnityp loop;
+    nnityp loop = 0;
     const time_t start = time(NULL);
     time_t currTime = start;
     time_t lastShow = currTime;
     time_t showTime = 1;
     nnftyp er3 = 0;
     nnftyp stepInc = 1.25;
-    for( loop = 1 ; (maxTime==0 || (currTime-start) <= maxTime) && step >= minStep && (maxFailsTest==0 || failsTest < maxFailsTest); loop++ ) {
+    while(
+        (maxTime==0 || currTime-start <= maxTime)
+            &&
+        step >= minStep
+            &&
+        (maxFailsTest==0 || failsTest < maxFailsTest)
+    ) {
+        loop++;
         currTime = time(NULL);
         CTVFlt copyP = p;
         rawMomentum( learn , subLoops , step , p , mom , bigPenal , toLearn );
@@ -504,9 +511,8 @@ void NNNet::momentum2(
             stepInc = 1.035;
             success = 0;
             fails ++ ;
-            p = copyP;
             for( nnityp i=0 ; i<p.size() ; i++ ) {
-                p[i] *= 0.5;
+                p[i] = copyP[i] * 0.5;
             }
         } else {
             bestWeights = weights;
@@ -845,7 +851,7 @@ int NNNet::subForceIdx(
     nnityp fails = 0;
 
     for( nnityp loop=0 ; ( maxFails == 0 || fails < maxFails ) && ( maxTime == 0 || (currTime - start) <= maxTime ) ; loop ++ ) {
-        data.shuffle(rnd);
+        data.shuffle(rnd());
         nnityp sum = 0;
         for( nnityp i=0 ; i<parts.size() ; i++ ) {
             ers[i] = error( data , bigPenal , sum , sum + parts[i] );
@@ -1231,7 +1237,7 @@ struct Multi {
         abort();
     }
     nncityp testSize = data.size() - sumParts;
-    data.shuffle(rnd,sumParts);
+    data.shuffle(rnd(),sumParts);
     nnityp sum;
     QVector<Multi> nn( 13 ); // multi
     for( int i=0 ; i<nn.size() ; i++ ) {

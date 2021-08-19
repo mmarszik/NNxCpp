@@ -74,8 +74,9 @@ NNData NNData::mkData(
 
 NNData NNData::rndSelect(
     nnityp size1,
-    FRnd &frnd
+    nncityp rndSeed
 ) const {
+    FRnd frnd(rndSeed);
     QVector<nnityp> idx( size() );
     for( nnityp i=0 ; i<size() ; i++ )
         idx[i] = i;
@@ -103,8 +104,9 @@ void NNData::split(
     nnityp size1,
     NNData &out2,
     nnityp size2,
-    FRnd   &frnd
+    nncityp rndSeed
 ) const {
+    FRnd   rnd(rndSeed);
     QVector<nnityp> idx( size() );
 
     for( nnityp i=0 ; i<size() ; i++ ) {
@@ -112,7 +114,7 @@ void NNData::split(
     }
 
     for( nnityp i=0 ; i<size()-1 ; i++ ) {
-        qSwap(idx[ i ], idx[ i + frnd.getI() % (size()-i) ]);
+        qSwap(idx[ i ], idx[ i + rnd.getI() % (size()-i) ]);
     }
 
     out1.clear();
@@ -164,15 +166,16 @@ void NNData::split(
     nnityp size2,
     NNData &out3,
     nnityp size3,
-    FRnd &frnd
+    nncityp rndSeed
 ) const {
+    FRnd   rnd(rndSeed);
     QVector<nnityp> idx( size() );
 
     for( nnityp i=0 ; i<size() ; i++ )
         idx[i] = i;
 
     for( nnityp i=0 ; i<size()-1 ; i++ ) {
-        qSwap(idx[ i ] , idx[ i + frnd.getI() % (size()-i) ] );
+        qSwap(idx[ i ] , idx[ i + rnd.getI() % (size()-i) ] );
     }
 
     out1.clear();
@@ -188,13 +191,15 @@ void NNData::split(
 
 }
 
-void NNData::shuffle( FRnd &rnd ) {
+void NNData::shuffle( nncityp rndSeed ) {
+    FRnd rnd(rndSeed);
     for( nnityp i=0 ; i<size()-1 ; i++ ) {
         qSwap( (*this)[ i ] , (*this)[ i + rnd.getI() % (size()-i) ] );
     }
 }
 
-void NNData::shuffle(FRnd &rnd, nncityp size) {
+void NNData::shuffle( nncityp rndSeed , nncityp size ) {
+    FRnd rnd(rndSeed);
     if( this->size() > size ) {
         abort();
     }

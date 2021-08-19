@@ -64,7 +64,7 @@ void fromStart() {
     {
         FRnd rnd(1);
         CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
-        data.split( learn , 80000 , test, data.size()-80000, rnd );
+        data.split( learn , 80000 , test, data.size()-80000, rnd() );
     }
 
     const unsigned long long rndSeed = std::random_device()();
@@ -72,7 +72,7 @@ void fromStart() {
     FRnd rnd(rndSeed);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-16;
+    nnftyp bigPenal = 1E-8;
 
     NNNet nn;
     nn.read("nndef.txt" );
@@ -89,7 +89,7 @@ void fromStart() {
         orgNN.toUniqueWeights(1);
         orgNN.setMinWeights(-30);
         orgNN.setMaxWeights(+30);
-        CNNData subLearn = learn.rndSelect(500,rnd);
+        CNNData subLearn = learn.rndSelect(500,rnd());
         nnftyp e = nn.error( subLearn, bigPenal);
         for( nnityp loop=1 ; loop <= 50000 ; loop ++ ) {
             NNNet tmpNN = orgNN;
@@ -108,17 +108,6 @@ void fromStart() {
     TVFlt toLearn( nn.sizeWeights() , 1.0 );
 //    toLearn[0] = 0;
 
-    if( true )
-    {
-        CTVInt parts = { 500,1000,3000, learn.size()};
-        CTVInt times = { 600,2400,3600,         3600};
-        for( nnityp loop=0 ; loop<parts.size() ; loop++ ) {
-            CNNData subLearn = learn.rndSelect(parts[loop],rnd);
-            nn.annealing( subLearn , bigPenal , times[loop] , 0.001 , 0.1 , 0.50 , rnd() );
-            nn.save( "nndef_out.txt" );
-            stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-        }
-    }
 
     {
         TVInt parts = { 500,1000,1500,2000,3500,5000,10000,20000,30000,learn.size()/2};
@@ -126,14 +115,14 @@ void fromStart() {
             NNData subLearn,subTest;
             PEXCP( parts[loop]*2 <= learn.size() );
             if( parts[loop]*4 <= learn.size() ) {
-                learn.split(subLearn,parts[loop],subTest,parts[loop]*3,rnd);
+                learn.split(subLearn,parts[loop],subTest,parts[loop]*3,rnd());
             } else if( parts[loop]*3 <= learn.size() ) {
-                learn.split(subLearn,parts[loop],subTest,parts[loop]*2,rnd);
+                learn.split(subLearn,parts[loop],subTest,parts[loop]*2,rnd());
             } else {
-                learn.split(subLearn,parts[loop],subTest,parts[loop]*1,rnd);
+                learn.split(subLearn,parts[loop],subTest,parts[loop]*1,rnd());
             }
             NNNet best = nn;
-            nncftyp maxStep   =  parts[loop] < 500 ? 1E-3 : parts[loop] <= 1000 ? 5E-3 : 5E-2;
+            nncftyp maxStep   =  parts[loop] < 500 ? 1E-2 : parts[loop] <= 1000 ? 5E-2 : 1E-1;
             nncftyp bigPenal2 =  bigPenal;
 
             nn.momentum2( subLearn , subTest, 3600*24, 30, 1E-6, maxStep, 1E-9, 0.80, toLearn, bigPenal2, 5, &best);
@@ -144,6 +133,10 @@ void fromStart() {
             stdOut << " test=" << classify( test ,nn ) << "%";
             stdOut << " time=" << (time(NULL)-start) << "s" << endl;
             nn.save( "nndef_out.txt" );
+        }
+        bigPenal /= 5;
+        if( bigPenal < 1E-12 ) {
+            bigPenal = 1E-12;
         }
     }
 
@@ -160,7 +153,7 @@ void fromStart() {
             }
 
             {
-                nn.momentum2( learn , CNNData(), 3000, 0, 1E-3, 1E-3, 1E-9, 0.99, toLearn, bigPenal, 5, nullptr);
+                nn.momentum2( learn , CNNData(), 3000, 0, 1E-3, 1E-3, 1E-9, 0.5, toLearn, bigPenal, 5, nullptr);
                 stdOut << "momentum2;  loop=" << loop;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
@@ -180,7 +173,7 @@ void nextLearn() {
     {
         FRnd rnd(1);
         CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
-        data.split( learn , 80000 , test, data.size()-80000, rnd );
+        data.split( learn , 80000 , test, data.size()-80000, rnd() );
     }
 
     FRnd rnd(6);
@@ -237,7 +230,7 @@ void experiment0() {
     {
         FRnd rnd(1);
         CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
-        data.split( learn , 80000 , test, data.size()-80000, rnd );
+        data.split( learn , 80000 , test, data.size()-80000, rnd() );
     }
 
     const unsigned long long rndSeed = std::random_device()();
@@ -304,10 +297,57 @@ void experiment0() {
 
 }
 
+void experiment1() {
+    QTextStream stdOut(stdout);
+
+    NNData learn, test;
+    {
+        FRnd rnd(1);
+        CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
+        data.split( learn , 80000 , test, data.size()-80000, rnd() );
+    }
+
+    const unsigned long long rndSeed = std::random_device()();
+    stdOut << "rndSeed=" << rndSeed << endl;
+    FRnd rnd(rndSeed);
+
+    const time_t start = time(NULL);
+    nnftyp bigPenal = 1E-7;
+
+    NNNet nn;
+    nn.read("nndef.txt" );
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+
+    {
+        nn.toUniqueWeights(0);
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+    {
+        nn.randWeights(rnd,-0.1,+0.1);
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+    {
+        NNData subLearn,subTest;
+        learn.split( subLearn, 70000 , subTest , 10000 , rnd() );
+        NNNet bestNN = nn;
+        nn.momentum2(subLearn , subTest, 48*3600, 200, 1E-3, 1E-2, 1E-9, 0.90, CTVFlt(), bigPenal, 5, &bestNN);
+        nn = bestNN;
+        stdOut << "momentum2;  loop=" << 1;
+        stdOut << " learn error=" << nn.error( learn , bigPenal );
+        stdOut << " test=" << classify( test ,nn ) << "%";
+        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+}
 
 int main(int argc, char *argv[])
 {
-    experiment0();
+    experiment1();
     return 0;
 }
 

@@ -119,7 +119,7 @@ public:
 
     NNData rndSelect(
         nnityp  size1,
-        FRnd &frnd
+        nncityp rndSeed
     ) const;
 
     NNData nSelect(
@@ -131,7 +131,7 @@ public:
         nnityp size1,
         NNData &out2,
         nnityp size2,
-        FRnd &frnd
+        nncityp rndSeed
    ) const;
 
     void split(
@@ -141,11 +141,11 @@ public:
         nnityp size2,
         NNData &out3,
         nnityp size3,
-        FRnd &frnd
+        nncityp rndSeed
     ) const;
 
-    void shuffle( FRnd &rnd );
-    void shuffle( FRnd &rnd, nncityp size );
+    void shuffle( nncityp rndSeed );
+    void shuffle( nncityp rndSeed , nncityp size );
 
 };
 
