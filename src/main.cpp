@@ -56,7 +56,6 @@ struct NNValue {
 // 3-5-5 - learnRand1; loop=4 learn error=0.318215 test=64.275% time=20349s
 // 3-6-5 - momentum2;  loop=3 learn error=0.294996 test=67.595% time=16767s
 // 3-7-5 - momentum2;  loop=8 learn error=0.266593 test=73.475% time=31857s
-// 3-8-5 -
 void fromStart() {
     QTextStream stdOut(stdout);
 
@@ -297,7 +296,9 @@ void experiment0() {
 
 }
 
-void experiment1() {
+// 3-8-5 - momentum2;  loop=66 learn error=0.25352 test=74.985% time=59613s
+// 3-8-5 - momentum2;  parts=70000 loop=30 learn error=0.258517 test=73.855% time=56426s
+void experiment1( const bool reLearn ) {
     QTextStream stdOut(stdout);
 
     NNData learn, test;
@@ -307,23 +308,27 @@ void experiment1() {
         data.split( learn , 80000 , test, data.size()-80000, rnd() );
     }
 
-    const unsigned long long rndSeed = std::random_device()();
-    stdOut << "rndSeed=" << rndSeed << endl;
-    FRnd rnd(rndSeed);
+    const unsigned long long rndSeed1 = std::random_device()();
+    const unsigned long long rndSeed2 = std::random_device()();
+    stdOut << "rndSeed1=" << rndSeed1 << endl;
+    stdOut << "rndSeed2=" << rndSeed2 << endl;
+    FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-9;
+    nnftyp bigPenal = 1E-7;
 
     NNNet nn;
     nn.read("nndef.txt" );
     stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
 
+    if( ! reLearn )
     {
         nn.toUniqueWeights(0);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
 
+    if( ! reLearn )
     {
         nn.randWeights(rnd,-0.1,+0.1);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
@@ -331,30 +336,92 @@ void experiment1() {
     }
 
     {
-        NNData subLearn,subTest;
-        learn.split( subLearn, 70000 , subTest , 10000 , rnd() );
-        for( nnityp loop=1 ; true ; loop++ ) {
-            NNNet bestNN = nn;
-            nncftyp er1 = nn.error( subLearn , bigPenal );
-            nn.momentum2(subLearn , subTest, 900, 500, 1E-4, 1E-4, 1E-9, 0.2, CTVFlt(), bigPenal, 5, &bestNN);
-            nn = bestNN;
-            nncftyp er2 = nn.error( subLearn , bigPenal );
-            stdOut << "momentum2;  loop=" << loop;
-            stdOut << " learn error=" << nn.error( learn , bigPenal );
-            stdOut << " test=" << classify( test ,nn ) << "%";
-            stdOut << " time=" << (time(NULL)-start) << "s" << endl;
-            nn.save( "nndef_out.txt" );
-            if( er1 - er2 < 1E-6 ) {
-                break;
+        CTVInt parts = { 1000, 2000, 5000,10000,70000};
+        for( nnityp p=0 ; p<parts.size() ; p++ ) {
+            NNData subLearn, subTest;
+            learn.split( subLearn, parts[p] , subTest , parts[p]*2 , rndSeed2+p );
+            for( nnityp loop=1 ; true ; loop++ ) {
+                nncftyp er1 = nn.error(subTest,bigPenal);
+                NNNet bestNN = nn;
+                nn.momentum2(subLearn , subTest, 900, 500, 1E-4, 5E-4, 1E-20, 0.97, CTVFlt(), bigPenal, 5, &bestNN);
+                nn = bestNN;
+                nncftyp er2 = nn.error(subTest,bigPenal);
+                stdOut << "momentum2;  parts=" << parts[p];
+                stdOut << " loop=" << loop;
+                stdOut << " learn error=" << nn.error( learn , bigPenal );
+                stdOut << " test=" << classify( test ,nn ) << "%";
+                stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+                nn.save( "nndef_out.txt" );
+                if( er1 - er2 < 1E-5 ) {
+                    break;
+                }
             }
         }
     }
 
 }
 
+
+// 3-8-5 - momentum2;  loop= 5 learn error=0.258124 test=74.895% time=6022s
+// 3-8-5 - momentum2;  loop=28 learn error=0.253949 test=75.06% time=33702s
+void experiment2( const bool reLearn ) {
+    QTextStream stdOut(stdout);
+
+    NNData learn, test;
+    {
+        FRnd rnd(1);
+        CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
+        data.split( learn , 80000 , test, data.size()-80000, rnd() );
+    }
+
+    const unsigned long long rndSeed1 = std::random_device()();
+    const unsigned long long rndSeed2 = std::random_device()();
+    stdOut << "rndSeed1=" << rndSeed1 << endl;
+    stdOut << "rndSeed2=" << rndSeed2 << endl;
+    FRnd rnd(rndSeed1);
+
+    const time_t start = time(NULL);
+    nnftyp bigPenal = 1E-7;
+
+    NNNet nn;
+    nn.read("nndef.txt" );
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+
+    if( ! reLearn )
+    {
+        nn.toUniqueWeights(0);
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+    if( ! reLearn )
+    {
+        nn.randWeights(rnd,-0.1,+0.1);
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+    for( nnityp loop=1 ; true ; loop++ ) {
+        nncftyp er1 = nn.error(learn,bigPenal);
+        nn.momentum2(learn , CNNData(), 1200, 500, 1E-2, 1, 1E-12, 0.9, CTVFlt(), bigPenal, 5, NULL);
+        nncftyp er2 = nn.error(learn,bigPenal);
+        stdOut << "momentum2;  loop=" << loop;
+        stdOut << " learn error=" << nn.error( learn , bigPenal );
+        stdOut << " test=" << classify( test ,nn ) << "%";
+        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+        if( er1 - er2 < 1E-5 ) {
+            break;
+        }
+    }
+
+}
+
+
 int main(int argc, char *argv[])
 {
-    experiment1();
+    const bool reLearn = false;
+    experiment2( reLearn );
     return 0;
 }
 
