@@ -70,7 +70,7 @@ private:
     bool chaosSizeUp( FRnd &rnd );
 
 public:
-    void chaosWeights(FRnd &rnd, cftyp strength);
+    void chaosWeights(nncityp rndSeed, cftyp strength, nncityp loops=1);
 
 public:
     NNNet() {}
@@ -156,6 +156,8 @@ public:
     void setMaxWeights(nncftyp max);
 
     void annealing(CNNData &data, nncftyp bigPenal, nncityp maxTime, nncftyp minStrength, nncftyp maxStrength, nncftyp pBack, nnityp rndSeed);
+    int forcePairIdx(CNNData &data, nncftyp bigPenal, nncityp loops, const bool show, nncityp rndSeed);
+    void learnRand3(CNNData &learn, CNNData &test, const time_t maxTime, nncityp maxFailsTest, nncftyp maxStep, nncftyp minStep, nncftyp bigPenal, nncityp rndSeed, NNNet *const best=NULL, const bool fullVerb=false);
 };
 
 

@@ -270,7 +270,7 @@ TVFlt NNNet::gradient( CNNData &data , nncftyp bigpenal ) const {
     }
 
     // f = w1^2 + w2^2 + ... + wn^2
-    // df/dw1 = 2( w1^2 + w2^2 + ... wn^2)
+    // df/dwi = 2wi
 
     if( bigpenal > 0 ) {
         for( nnityp i=0 ; i<sizeWeights() ; i++ )
@@ -507,12 +507,12 @@ void NNNet::momentum2(
 
         if( er2 > er1 ) {
             weights = bestWeights;
-            step *= 0.5;
-            stepInc = 1.035;
+            step *= 0.42;
+            stepInc = 1.0341;
             success = 0;
             fails ++ ;
             for( nnityp i=0 ; i<p.size() ; i++ ) {
-                p[i] = copyP[i] * 0.5;
+                p[i] = copyP[i] * 0.41;
             }
         } else {
             bestWeights = weights;
@@ -558,9 +558,9 @@ void NNNet::momentum2(
             stdOut << qSetFieldWidth(9) << qSetRealNumberPrecision(6) << step;
             stdOut << qSetFieldWidth(0) << " ";
             TVFlt gr = gradient(learn,bigPenal);
-            stdOut << qSetFieldWidth(13)<< avgNorm( makeToLearn( gr, toLearn ) );
+            stdOut << qSetFieldWidth(13)<< fnorm( makeToLearn( gr, toLearn ) );
             stdOut << qSetFieldWidth(0) << " ";
-            stdOut << qSetFieldWidth(13) << avgNorm(weights);
+            stdOut << qSetFieldWidth(13) << fnorm(weights);
             stdOut << qSetFieldWidth(0) << " ";
             stdOut << qSetFieldWidth(13) << fnorm(p);
             stdOut << qSetFieldWidth(0) << " ";
@@ -594,6 +594,133 @@ void NNNet::momentum2(
 
 }
 
+
+void NNNet::learnRand3(
+    CNNData &learn ,         //MM: Data to learn.
+    CNNData &test ,          //MM: Data to test.
+    const time_t maxTime ,
+    nncityp maxFailsTest,
+    nncftyp maxStep,
+    nncftyp minStep,
+    nncftyp bigPenal,
+    nncityp rndSeed,
+    NNNet *const best,
+    const bool fullVerb
+) {
+    FRnd rnd(rndSeed);
+    QTextStream stdOut(stdout);
+    stdOut.setRealNumberPrecision(6);
+    stdOut.setRealNumberNotation( QTextStream::FixedNotation );
+    nnftyp er1 = error( learn , bigPenal );
+    nnftyp er2 = 0;
+    nnftyp testError = 0;
+    if( test.size() > 0 ) {
+        testError = error( test , bigPenal );
+    }
+    nnityp fails = 0, failsTest = 0;
+    TVFlt steps( sizeWeights() );
+    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+        steps[i] = ( rnd()&1 ? -1 : +1 ) * rnd.getF( maxStep/10.0 , maxStep);
+    }
+    stdOut << "    loop] weight learn_error";
+    if( test.size() > 0 ) {
+        stdOut << "        test";
+        stdOut << "  best_error";
+    }
+    stdOut<< " ||steps||   ||weights||  fails     time" << endl;
+    nnityp loop = 0;
+    const time_t start = time(NULL);
+    time_t currTime = start;
+    time_t lastShow = currTime;
+    time_t showTime = 1;
+
+    while( true ) {
+        loop++;
+
+        for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+
+            currTime = time(NULL);
+
+            if(maxTime      !=0 && currTime-start > maxTime ) {goto endProc;}
+            if(maxFailsTest !=0 && failsTest >= maxFailsTest) {goto endProc;}
+
+            nncftyp copy = weights[i];
+
+            for( nnityp j=0 ; j<10 ; j++ ) {
+                if( fabs( steps[i] ) < minStep ) {
+                    steps[i] = ( rnd()&1 ? -1 : +1 ) * rnd.getF( minStep , maxStep);
+                }
+                if( steps[i] < -maxStep ) {steps[i] = -maxStep;}
+                if( steps[i] > +maxStep ) {steps[i] = +maxStep;}
+                weights[i] += steps[i];
+                nncftyp tmp = error(learn,bigPenal);
+                if( tmp <= er1 ) {
+                    if( tmp <= er1 ) {
+                        er1 = tmp;
+                        steps[i] *= 2;
+                    }
+                    if( test.size() > 0 ) {
+                        er2 = error( test , bigPenal );
+                        if( er2 <= testError ) {
+                            failsTest = 0;
+                            testError = er2;
+                            if( best != nullptr ) {
+                                *best = *this;
+                            }
+                        } else {
+                            failsTest ++ ;
+                        }
+                    }
+                    break;
+                }
+                weights[i] = copy;
+                steps[i] *= -0.5;
+            }
+
+            if( fullVerb || (loop == 1 && i==0 ) || currTime - lastShow >= showTime ) {
+
+                stdOut << qSetFieldWidth(8) << loop;
+                stdOut << qSetFieldWidth(0) << " ";
+                stdOut << qSetFieldWidth(6) << i;
+                stdOut << qSetFieldWidth(0) << "] ";
+                stdOut << qSetFieldWidth(11) << qSetRealNumberPrecision(8) << er1;
+                if( test.size() > 0 ) {
+                    stdOut << qSetFieldWidth( 0) << " ";
+                    stdOut << qSetFieldWidth(11) <<  er2;
+                    stdOut << qSetFieldWidth( 0) << " ";
+                    stdOut << qSetFieldWidth(11) << testError;
+                }
+                stdOut << qSetFieldWidth(0) << " ";
+                stdOut << qSetFieldWidth(9) << qSetRealNumberPrecision(6) << avgNorm(steps);
+                stdOut << qSetFieldWidth(0) << " ";
+                stdOut << qSetFieldWidth(13) << avgNorm(weights);
+                stdOut << qSetFieldWidth(0) << " ";
+                stdOut << qSetFieldWidth(6) << fails;
+                stdOut << qSetFieldWidth(0) << " ";
+                stdOut << qSetFieldWidth(7) << (currTime-start);
+                stdOut << qSetFieldWidth(0) << "s";
+                stdOut << endl;
+
+                lastShow = currTime;
+                if( currTime - start >= 2000 ) {
+                    showTime = 200;
+                } else if( currTime - start >= 1000 ) {
+                    showTime = 100;
+                } else if( currTime - start >= 500 ) {
+                    showTime =  50;
+                } else if( currTime - start >= 300 ) {
+                    showTime =  25;
+                } else if( currTime - start >= 100 ) {
+                    showTime =  20;
+                } else {
+                    showTime =  10;
+                }
+            }
+        }
+    }
+    endProc:
+    ;
+}
 
 
 
@@ -815,6 +942,60 @@ int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool
     }
     return increse;
 }
+
+int NNNet::forcePairIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool show , nncityp rndSeed ) {
+    FRnd rnd(rndSeed);
+    int increse = 0;
+    QTextStream stdo(stdout);
+    stdo.setRealNumberPrecision(8);
+    stdo.setRealNumberNotation( QTextStream::FixedNotation );
+    nnftyp er = error(data);
+
+    bool work = true;
+    for( nnityp loop=0 ; loop<loops && work ; loop ++ ) {
+        work = false;
+
+        NNVec<nnityp*> idxp;
+        for( nnityp i=0 ; i<neurons.size() ; i++ ) {
+            NNNeuron &n = neurons[ i ];
+            for( nnityp j=0 ; j<n.idx_w.size() ; j++ ) {
+                idxp.append( &n.idx_w[j] );
+            }
+        }
+
+        while( idxp.size() >= 2 ) {
+            if( show ) {
+                stdo << "loop=" << loop << " " << idxp.size() << endl;
+            }
+            nnityp *p1 = idxp.takeAt( rnd() % idxp.size() );
+            nnityp *p2 = idxp.takeAt( rnd() % idxp.size() );
+            nnityp b1 = *p1;
+            nnityp b2 = *p2;
+            for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+                *p1 = i;
+                for( nnityp j=0 ; j<sizeWeights() ; j++ ) {
+                    *p2 = j;
+                    nncftyp tmp = error(data,bigPenal);
+                    if( tmp < er ) {
+                        increse ++ ;
+                        work = true;
+                        er = tmp;
+                        b1 = *p1;
+                        b2 = *p2;
+                        if( show ) {
+                            stdo << loop << "] " << i << " " << j << " " << er << endl;
+                        }
+                    }
+                }
+                *p1 = b1;
+                *p2 = b2;
+            }
+        }
+
+    }
+    return increse;
+}
+
 
 int NNNet::subForceIdx(
     NNData &data,
@@ -1103,10 +1284,10 @@ void NNNet::learnRand1(
             }
             er = tmp;
             best = *this;
-        } else if( rnd.getF() < 0.25 ) {
+        } else if( rnd.getF() < 0.40 ) {
             *this = best;
         }
-        if( (loop & 0x0) == 0 ) {
+        if( (loop & 0xF) == 0 ) {
             const time_t tmp = time(NULL);
             while( currTime < tmp) {
                 strenght *= decay;
@@ -1131,7 +1312,7 @@ void NNNet::annealing(
     stdOut.setRealNumberPrecision(8);
     stdOut.setRealNumberNotation(QTextStream::FixedNotation);
     FRnd rnd(rndSeed);
-    NNNet best = *this;
+    TVFlt bestWeights = weights;
     nnftyp er = error(data,bigPenal);
     const time_t start = time(NULL);
     time_t currTime = start;
@@ -1140,7 +1321,7 @@ void NNNet::annealing(
     nnftyp strenght = maxStrength;
     nnftyp decay = pow( minStrength / maxStrength , 1.0 / maxTime );
 
-    stdOut << "      loop   strength   learn_error    curr_error    time" << endl;
+    stdOut << "      loop   strength    best_error    curr_error    time" << endl;
 
     for( nnityp loop=1 ; (currTime-start) <= maxTime ; loop++ ) {
 
@@ -1159,9 +1340,9 @@ void NNNet::annealing(
         nncftyp tmp = error(data,bigPenal);
         if( tmp <= er ) {
             er = tmp;
-            best = *this;
+            bestWeights = weights;
         } else if( rnd.getF() < pBack ) {
-            *this = best;
+            weights = bestWeights;
         }
 
         if( currTime - lastShow >= showTime ) {
@@ -1179,24 +1360,24 @@ void NNNet::annealing(
 
             lastShow = currTime;
             if( currTime - start > 7200 ) {
-                showTime =  60;
+                showTime = 120;
             } else if( currTime - start > 3600 ) {
-                showTime =  30;
+                showTime =  60;
             } else if( currTime - start > 1800 ) {
-                showTime =  20;
+                showTime =  30;
             } else if( currTime - start > 600 ) {
-                showTime =  10;
+                showTime =  20;
             } else if( currTime - start > 120 ) {
-                showTime =   5;
+                showTime =  10;
             } else if( currTime - start >  60 ) {
-                showTime =   2;
+                showTime =   3;
             } else {
                 showTime =   1;
             }
         }
 
     }
-    *this = best;
+    weights = bestWeights;
 }
 
 
@@ -1657,10 +1838,19 @@ bool NNNet::chaosWeight( FRnd &rnd, cftyp strength ) {
 }
 
 // Zaburza wartość wszystkich wag
-void NNNet::chaosWeights( FRnd &rnd, cftyp strength ) {
-    for( nnityp i=0 ; i<weights.size() ; i++ ) {                      // Po wszystkich wagach.
-        if( max_w[i] - min_w[i] > 1E-6 ) {                            // Jeśli jest jakiś sensowny przedział, to
-            rnd.chaos( weights[i] , min_w[i] , max_w[i] , strength ); // Zaburz wagę.
+void NNNet::chaosWeights(nncityp rndSeed, cftyp strength , nncityp loops) {
+    FRnd rnd(rndSeed);
+    for( nnityp loop=0 ; loop<loops ; loop++ ) {
+        for( nnityp i=0 ; i<weights.size() ; i++ ) {             // Po wszystkich wagach.
+            weights[i] += rnd.getF( -strength , +strength );
+        }
+    }
+    for( nnityp i=0 ; i<weights.size() ; i++ ) {                 // Po wszystkich wagach.
+        if( weights[i] < min_w[i] ) {
+            weights[i] = min_w[i];
+        }
+        if( weights[i] > max_w[i] ) {
+            weights[i] = max_w[i];
         }
     }
 }
