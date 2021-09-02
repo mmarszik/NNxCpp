@@ -317,7 +317,12 @@ void experiment0(const bool reLearn) {
 // 3-8-5 - momentum2;  parts=70000 loop=30 learn error=0.258517 test=73.855% time=56426s
 // 3-10-5 - momentum2;  parts=60000 loop=1 bigPenal=1e-09 maxStep=0.2 maxFails=200 learn error=0.242603 test=75.925% time=967s
 // 3-10-10-5 - momentum2;  parts=60000 loop=2 bigPenal=1e-09 maxStep=0.2 maxFails=200 learn error=0.105752 test=89.985% time=2713s
-// 3-16-16-5 - momentum2; momentum2;  parts=60000 loop=1 bigPenal=1e-09 maxStep=0.2 maxFails=200 learn error=0.0550948 test=95.625% time=4699s
+// 3-16-16-5 - momentum2;  parts=60000 loop=1 bigPenal=1e-09 maxStep=0.2 maxFails=200 learn error=0.0550948 test=95.625% time=4699s
+// 3-16-16-5 - momentum2;  parts=60000 loop=3 bigPenal=1e-06 maxStep=0.05 maxFails=500 learn error=0.086473 test=92.9% time=8808s
+// 3-16-16-5 - momentum2;  parts=60000 loop=1 bigPenal=1e-08 maxStep=0.05 maxFails=500 learn error=0.0714181 test=93.64% time=17583s
+// 3-16-16-5 - momentum2;  parts=60000 loop=1 bigPenal=1e-09 maxStep=0.05 maxFails=500 learn error=0.0805478 test=92.73% time=15426s
+// 3-16-16-5 - momentum2;  parts=80000 loop=1 bigPenal=1e-09 maxStep=0.05 maxFails=500 learn error=0.0604753 test=94.955% time=19065s
+
 void experiment1( const bool reLearn ) {
     QTextStream stdOut(stdout);
 
@@ -335,7 +340,7 @@ void experiment1( const bool reLearn ) {
     FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-2;
+    nnftyp bigPenal = 1E-5;
 
     NNNet nn;
     nn.read("nndef.txt" );
@@ -350,7 +355,7 @@ void experiment1( const bool reLearn ) {
 
     if( ! reLearn )
     {
-        nn.randWeights(rnd,-0.4,+0.4);
+        nn.randWeights(rnd,-0.1,+0.1);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
@@ -358,13 +363,13 @@ void experiment1( const bool reLearn ) {
     {
         nnftyp maxFails = 50;
         nnftyp maxStep = 0.0003;
-        CTVInt parts = { 1000, 2000, 3000, 5000, 7500, 10000, 20000, 40000, 60000 };
+        CTVInt parts = { 1000, 2000, 3000, 5000, 7500, 10000, 20000, 40000, learn.size() };
         for( nnityp p=0 ; p<parts.size() ; p++ ) {
             NNData subLearn, subTest;
             learn.split( subLearn, parts[p] , subTest , parts[p]*2 , rndSeed2+p );
             for( nnityp loop=1 ; true ; loop++ ) {
 
-                nncftyp er1 = nn.error(subTest,bigPenal);
+                nncftyp er1 = nn.error(subLearn,bigPenal);
 
                 NNNet bestNN = nn;
                 nn.momentum2(subLearn , subTest, 1800, maxFails, maxStep/30, maxStep, 1E-12, 0.97, CTVFlt(), bigPenal, 1, &bestNN);
@@ -380,7 +385,7 @@ void experiment1( const bool reLearn ) {
                 stdOut << " time=" << (time(NULL)-start) << "s" << endl;
                 nn.save( "nndef_out.txt" );
 
-                nncftyp er2 = nn.error(subTest,bigPenal);
+                nncftyp er2 = nn.error(subLearn,bigPenal);
                 if( er1 - er2 < 1E-6 ) {
                     break;
                 }
