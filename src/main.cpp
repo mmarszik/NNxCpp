@@ -243,16 +243,13 @@ void experiment0(const bool reLearn) {
     nn.read("nndef.txt" );
     stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
 
-    if( ! reLearn )
-    {
-        nn.toUniqueWeights(0);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "nndef_out.txt" );
-    }
+    nn.toUniqueWeights(0);
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    nn.save( "nndef_out.txt" );
 
     if( ! reLearn )
     {
-        nn.randWeights(rnd,-0.4,+0.4);
+        nn.randWeights(rnd,-0.1,+0.1);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
@@ -265,7 +262,7 @@ void experiment0(const bool reLearn) {
         nncftyp oldError = nn.error( learn, bigPenal );
 
         {
-            nn.learnRand1( learn, bigPenal,  60*5, 0, 1E-12, 0.001 , 0.02 , rnd(), true, false, false );
+            nn.learnRand1( learn, bigPenal,  60*5, 0, 1E-12, 0.001 , 0.05 , rnd(), true, false, false );
             stdOut << "learnRand1; loop=" << loop;
             stdOut << " learn_error=" << nn.error( learn , bigPenal );
             stdOut << " best_error=" << best.error( learn , bigPenal );
@@ -340,7 +337,7 @@ void experiment1( const bool reLearn ) {
     FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-5;
+    nnftyp bigPenal = 1E-7;
 
     NNNet nn;
     nn.read("nndef.txt" );
@@ -361,8 +358,8 @@ void experiment1( const bool reLearn ) {
     }
 
     {
-        nnftyp maxFails = 50;
-        nnftyp maxStep = 0.0003;
+        nnftyp maxFails = 500;
+        nnftyp maxStep = 0.001;
         CTVInt parts = { 1000, 2000, 3000, 5000, 7500, 10000, 20000, 40000, learn.size() };
         for( nnityp p=0 ; p<parts.size() ; p++ ) {
             NNData subLearn, subTest;
@@ -372,7 +369,7 @@ void experiment1( const bool reLearn ) {
                 nncftyp er1 = nn.error(subLearn,bigPenal);
 
                 NNNet bestNN = nn;
-                nn.momentum2(subLearn , subTest, 1800, maxFails, maxStep/30, maxStep, 1E-12, 0.97, CTVFlt(), bigPenal, 1, &bestNN);
+                nn.momentum2(subLearn , subTest, 1800, maxFails, maxStep/100, maxStep, 1E-12, 0.97, CTVFlt(), bigPenal, 1, &bestNN);
                 nn = bestNN;
 
                 stdOut << "momentum2;  parts=" << parts[p];
@@ -391,9 +388,9 @@ void experiment1( const bool reLearn ) {
                 }
 
             }
-            bigPenal *= 0.316227766016838;
-            maxStep  *= 1.89553188304255;
-            maxFails *= 1.33352143216332;
+            bigPenal *= 0.1;
+            maxStep  *= 1.77827941003892;
+            maxFails *= 1,33352143216332;
         }
     }
 
@@ -422,7 +419,7 @@ void experiment2( const bool reLearn ) {
     FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-14;
+    nnftyp bigPenal = 1E-6;
 
     NNNet nn;
     nn.read("nndef.txt" );
@@ -430,7 +427,7 @@ void experiment2( const bool reLearn ) {
 
     if( ! reLearn )
     {
-        nn.toUniqueWeights(0);
+        nn.toUniqueWeights(1);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
@@ -442,6 +439,7 @@ void experiment2( const bool reLearn ) {
         nn.save( "nndef_out.txt" );
     }
 
+    if( false )
     {
         nn.learnRand1( learn.rndSelect(8000,rndSeed2), bigPenal, 3600 , 0, 0, 0.001, 0.3 , rnd(), true, false, false );
         stdOut << "learnRand1;  loop=" << 0;
@@ -454,7 +452,7 @@ void experiment2( const bool reLearn ) {
     for( nnityp loop=1 ; true ; loop++ ) {
         nncftyp er1 = nn.error(learn,bigPenal);
 
-        nn.momentum2(learn , CNNData(), 1200, 0, 1E-1, 1, 1E-14, 0.9, CTVFlt(), bigPenal, 5, NULL);
+        nn.momentum2(learn , CNNData(), 1200, 0, 1E-2, 0.05, 1E-14, 0.9, CTVFlt(), bigPenal, 1, NULL);
         stdOut << " momentum2;  loop=" << loop;
         stdOut << " learn error=" << nn.error( learn , bigPenal );
         stdOut << " test=" << classify( test ,nn ) << "%";
@@ -560,71 +558,10 @@ void experiment3( const bool reLearn ) {
 
 
 
-
-void experiment4( const bool reLearn ) {
-    QTextStream stdOut(stdout);
-
-    NNData learn, test;
-    {
-        FRnd rnd(1);
-        CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
-        data.split( learn , 80000 , test, data.size()-80000, rnd() );
-    }
-
-    const unsigned long long rndSeed1 = std::random_device()();
-    const unsigned long long rndSeed2 = std::random_device()();
-    stdOut << "rndSeed1=" << rndSeed1 << endl;
-    stdOut << "rndSeed2=" << rndSeed2 << endl;
-    FRnd rnd(rndSeed1);
-
-    const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-12;
-
-    NNNet nn;
-    nn.read("nndef.txt" );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-
-    if( ! reLearn )
-    {
-        nn.toUniqueWeights(0);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "nndef_out.txt" );
-    }
-
-    if( ! reLearn )
-    {
-        nn.randWeights(rnd,-0.4,+0.4);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "nndef_out.txt" );
-    }
-
-
-    for( nnityp loop=1 ; true ; loop++ ) {
-
-        nncftyp er1 = nn.error(learn,bigPenal);
-
-        nn.learnRand3(learn, CNNData(), 1800, 0, 0.05, 1E-6, bigPenal, rnd(), nullptr, false );
-
-        stdOut << "learnRand3;  loop=" << loop;
-        stdOut << " learn error=" << nn.error( learn , bigPenal );
-        stdOut << " test=" << classify( test ,nn ) << "%";
-        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
-        nn.save( "nndef_out.txt" );
-
-        nncftyp er2 = nn.error(learn,bigPenal);
-        if( er1 - er2 < 1E-5 ) {
-            break;
-        }
-
-    }
-
-}
-
-
 int main(int argc, char *argv[])
 {
-    const bool reLearn = false;
-    experiment1( reLearn );
+    const bool reLearn = true;
+    experiment0( reLearn );
     return 0;
 }
 

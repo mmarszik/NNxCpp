@@ -571,22 +571,24 @@ void NNNet::momentum2(
             stdOut << endl;
 
             lastShow = currTime;
-            if( currTime - start > 3*3600 ) {
-                showTime =  300;
-            } else if( currTime - start > 2*3600 ) {
-                showTime =  120;
-            } else if( currTime - start > 3600 ) {
-                showTime =  60;
-            } else if( currTime - start > 1800 ) {
-                showTime =  30;
-            } else if( currTime - start > 600 ) {
+            if( currTime - start >= 5000 ) {
+                showTime = 500;
+            } else if( currTime - start >=3000 ) {
+                showTime = 300;
+            } else if( currTime - start >=2000 ) {
+                showTime = 200;
+            } else if( currTime - start >=1000 ) {
+                showTime = 100;
+            } else if( currTime - start >= 400 ) {
+                showTime =  50;
+            } else if( currTime - start >= 200 ) {
+                showTime =  20;
+            } else if( currTime - start >= 100 ) {
                 showTime =  10;
-            } else if( currTime - start > 120 ) {
+            } else if( currTime - start >=  20 ) {
                 showTime =   5;
-            } else if( currTime - start >  60 ) {
-                showTime =   2;
             } else {
-                showTime =   1;
+                showTime =   2;
             }
         }
     }
@@ -1264,28 +1266,24 @@ void NNNet::learnRand1(
     nnityp noti = 0;
     nnftyp strenght = max_str;
     nnftyp decay = pow( min_str / max_str , 1.0 / maxTime );
-    nnityp loop;
     const time_t start = time(NULL);
     time_t currTime = start;
-    for( loop=0 ; currTime - start <= maxTime && (maxnoti==0 || noti < maxnoti) ; loop++ ) {
+    time_t lastShow = currTime;
+    time_t showTime = 1;
+    for( nnityp loop=1 ; currTime - start <= maxTime && (maxnoti==0 || noti < maxnoti) ; loop++ ) {
         chaos( rnd , strenght , weights, idx_weights, idx_input );
         nncftyp tmp = error( data , bigPenal  );
         if( tmp <= er ) {
             if( tmp < er - mindesc ) {
-                stdo << qSetFieldWidth(8)  << loop;
-                stdo << qSetFieldWidth(0)  << "] ";
-                stdo << qSetFieldWidth(10) << tmp;
-                stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(7) << noti;
-                stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(10) << strenght;
-                stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(0) << (currTime-start);
-                stdo << qSetFieldWidth(0)  << "s";
-                stdo << endl;
                 noti = 0;
             }
             er = tmp;
             best = *this;
-        } else if( rnd.getF() < 0.40 ) {
-            *this = best;
+        } else {
+            if( rnd.getF() < 0.40 ) {
+                *this = best;
+            }
+            noti ++ ;
         }
         if( (loop & 0xF) == 0 ) {
             const time_t tmp = time(NULL);
@@ -1294,7 +1292,39 @@ void NNNet::learnRand1(
                 currTime++;
             }
         }
-        noti ++ ;
+        if( loop == 1 || currTime - lastShow >= showTime ) {
+
+            stdo << qSetFieldWidth(8)  << loop;
+            stdo << qSetFieldWidth(0)  << "] ";
+            stdo << qSetFieldWidth(10) << er;
+            stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(7) << noti;
+            stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(10) << strenght;
+            stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(0) << (currTime-start);
+            stdo << qSetFieldWidth(0)  << "s";
+            stdo << endl;
+
+            lastShow = currTime;
+            if( currTime - start >= 5000 ) {
+                showTime = 500;
+            } else if( currTime - start >=3000 ) {
+                showTime = 300;
+            } else if( currTime - start >=2000 ) {
+                showTime = 200;
+            } else if( currTime - start >=1000 ) {
+                showTime = 100;
+            } else if( currTime - start >= 400 ) {
+                showTime =  50;
+            } else if( currTime - start >= 200 ) {
+                showTime =  20;
+            } else if( currTime - start >= 100 ) {
+                showTime =  10;
+            } else if( currTime - start >=  20 ) {
+                showTime =   5;
+            } else {
+                showTime =   2;
+            }
+        }
+
     }
     *this = best;
 }
