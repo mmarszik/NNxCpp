@@ -262,7 +262,7 @@ void experiment0(const bool reLearn) {
         nncftyp oldError = nn.error( learn, bigPenal );
 
         {
-            nn.learnRand1( learn, bigPenal,  60*5, 0, 1E-12, 0.001 , 0.05 , rnd(), true, false, false );
+            nn.learnRand1( learn, bigPenal,  60*5, 0, 1E-12, 0.0001 , 0.001 , rnd(), true, false, false );
             stdOut << "learnRand1; loop=" << loop;
             stdOut << " learn_error=" << nn.error( learn , bigPenal );
             stdOut << " best_error=" << best.error( learn , bigPenal );
@@ -289,10 +289,10 @@ void experiment0(const bool reLearn) {
             best.save( "nndef_out.txt" );
         }
 
-        if( rnd() % 4 == 0 && oldError - newError < 5E-5  ) {
+        if( oldError - newError < 5E-5 ) {
             nn = best;
-            nncftyp strength = rnd.getF( 1E-3  , 1E-2 );
-            nncityp loops    = rnd.getI(   20  ,  100 );
+            nncftyp strength = rnd.getF( 0.01  ,  0.5 );
+            nncityp loops    = rnd.getI(    4  ,   20 );
             nncityp rndSeed  = rnd();
             nn.chaosWeights(rndSeed, strength, loops );
             stdOut << "chaos; loop=" << loop;

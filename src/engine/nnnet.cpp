@@ -571,14 +571,20 @@ void NNNet::momentum2(
             stdOut << endl;
 
             lastShow = currTime;
+
+            nnityp ds = 0;
             if( currTime - start >= 5000 ) {
                 showTime = 500;
+                ds       = 100;
             } else if( currTime - start >=3000 ) {
                 showTime = 300;
+                ds       =  50;
             } else if( currTime - start >=2000 ) {
                 showTime = 200;
+                ds       =  10;
             } else if( currTime - start >=1000 ) {
                 showTime = 100;
+                ds       =  10;
             } else if( currTime - start >= 400 ) {
                 showTime =  50;
             } else if( currTime - start >= 200 ) {
@@ -590,6 +596,15 @@ void NNNet::momentum2(
             } else {
                 showTime =   2;
             }
+            if( ds ) {
+                nncityp d = (currTime - start + showTime) % ds;
+                if( d < ds / 2 ) {
+                    showTime -= d;
+                } else {
+                    showTime += ds - d;
+                }
+            }
+
         }
     }
     weights = bestWeights;
@@ -1285,7 +1300,7 @@ void NNNet::learnRand1(
             }
             noti ++ ;
         }
-        if( (loop & 0xF) == 0 ) {
+        if( (loop & 0x0) == 0 ) {
             const time_t tmp = time(NULL);
             while( currTime < tmp) {
                 strenght *= decay;
@@ -1304,14 +1319,19 @@ void NNNet::learnRand1(
             stdo << endl;
 
             lastShow = currTime;
+            nnityp ds = 0;
             if( currTime - start >= 5000 ) {
                 showTime = 500;
+                ds       = 100;
             } else if( currTime - start >=3000 ) {
                 showTime = 300;
+                ds       =  50;
             } else if( currTime - start >=2000 ) {
                 showTime = 200;
+                ds       =  10;
             } else if( currTime - start >=1000 ) {
                 showTime = 100;
+                ds       =  10;
             } else if( currTime - start >= 400 ) {
                 showTime =  50;
             } else if( currTime - start >= 200 ) {
@@ -1323,6 +1343,15 @@ void NNNet::learnRand1(
             } else {
                 showTime =   2;
             }
+            if( ds ) {
+                nncityp d = (currTime - start + showTime) % ds;
+                if( d < ds / 2 ) {
+                    showTime -= d;
+                } else {
+                    showTime += ds - d;
+                }
+            }
+
         }
 
     }
