@@ -9,6 +9,11 @@
 
 namespace NsNet {
 
+template<typename T>
+T signum(const T value) {
+    return value < static_cast<T>(0) ? -1 : + 1;
+}
+
 static nnftyp factivateMLin( nncftyp inp ) {
     nnftyp a,b;
     if     ( inp < -10.0 ) { a=0.01; b=-1.7; }
@@ -39,9 +44,9 @@ static nnftyp factivate( nncftyp inp, NNActv actv ) {
         case NNA_MLIN:  return factivateMLin(inp);
         case NNA_SUNI:  return 1.0 / ( 1.0 + exp(-inp) );
         case NNA_SBIP:  return 2.0 / ( 1.0 + exp(-inp) ) - 1.0;
-        case NNA_SBIP_L:return 2.0 / ( 1.0 + exp(-inp) ) - 1.0 + inp * 0.001;
+        case NNA_SBIP_L:return 2.0 / ( 1.0 + exp(-inp) ) - 1.0 + inp * 1E-6;
         case NNA_RELU:  return log( 1.0 + exp(inp) );
-        case NNA_NNAME: return 1.0 / ( 1.0 + fabs(inp) );
+        case NNA_NNAME: return inp / ( 1.0 + fabs(inp) );
     }
     return 0;
 }
@@ -54,9 +59,9 @@ static nnftyp fderivate( nncftyp out, NNActv actv ) {
         case NNA_MLIN:   return fderivateMLin(out);
         case NNA_SUNI:   return out * (1.0 - out);
         case NNA_SBIP:   return 0.5 * (1.0 - out*out);
-        case NNA_SBIP_L: return 0.5 * (1.0 - out*out) + 0.001;
+        case NNA_SBIP_L: return 0.5 * (1.0 - out*out) + 1E-6;
         case NNA_RELU:   return 1.0 / ( exp(-out) + 1 );
-        case NNA_NNAME:  tmp = fabs( out / ( 1 - fabs(out) ) ) + 1; return 1.0 / ( tmp * tmp );
+        case NNA_NNAME:  tmp = out < 0 ? out/(1.0+out) : -(out/(out-1.0)); tmp = fabs(tmp)+1.0; tmp *= tmp; return 1.0 / tmp;
     }
     return 0;
 }
@@ -191,7 +196,7 @@ TVFlt NNNet::compute( CTVFlt &inp ) const {
 
 
 void NNNet::gradient( CTVFlt &inp , CTVFlt &out , TVFlt &obuf , TVFlt &ibuf , TVFlt &grad  ) const {
-    QTextStream stdo(stdout);
+//    QTextStream stdo(stdout);
 
     compute( inp , obuf );
 
@@ -248,7 +253,7 @@ TVFlt NNNet::gradientN( CNNData &data ) {
 }
 
 
-TVFlt NNNet::gradient( CNNData &data , nncftyp bigpenal ) const {
+TVFlt NNNet::gradient( CNNData &data , nncftyp bigPenal ) const {
     nncityp mt = omp_get_max_threads();
 
     NNVec< TVFlt > grads( mt );
@@ -269,12 +274,15 @@ TVFlt NNNet::gradient( CNNData &data , nncftyp bigpenal ) const {
             grad[j] += grads[i][j];
     }
 
+//    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+//        grad[i] /= data.size() * size_o;
+//    }
+
     // f = w1^2 + w2^2 + ... + wn^2
     // df/dwi = 2wi
 
-    if( bigpenal > 0 ) {
-        for( nnityp i=0 ; i<sizeWeights() ; i++ )
-            grad[i] += 2 * weights[i] * bigpenal;
+    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+        grad[i] += 2 * weights[i] * bigPenal * data.size() * size_o;
     }
 
     return grad;
@@ -596,6 +604,7 @@ void NNNet::momentum2(
             } else {
                 showTime =   2;
             }
+//            showTime = 0;
             if( ds ) {
                 nncityp d = (currTime - start + showTime) % ds;
                 if( d < ds / 2 ) {
@@ -1523,13 +1532,14 @@ nnftyp NNNet::error( CNNData &data , nncftyp bigpenal, nnityp start , nnityp end
         start = 0;
         end   = data.size();
     }
-    #pragma omp parallel for reduction(+:sum) firstprivate(obuf) schedule(static)
+    #pragma omp parallel for reduction(+:sum) firstprivate(obuf)
     for( nnityp i=start ; i<end ; i++ ) {
         sum += error( data[i].getInps() , data[i].getOuts() , obuf );
     }
     sum /= (end - start) * size_o;
-    for( nnityp i=0 ; i<sizeWeights() ; i++ )
+    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
         sum += bigpenal * weights[i] * weights[i];
+    }
     return sum;
 }
 
