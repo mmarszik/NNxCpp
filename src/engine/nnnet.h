@@ -81,8 +81,8 @@ public:
     nnftyp error( CNNRecord &rec , TVFlt &obuf ) const;
     nnftyp error(CNNData &data , nncftyp bigpenal=0, nnityp start=-1, nnityp end=-1) const;
 
-    nnityp suzeBuf() const { return size_i + neurons.size(); }
-    nnityp offsetOut() const { return suzeBuf() - size_o; }
+    nnityp sizeBuf() const { return size_i + neurons.size(); }
+    nnityp offsetOut() const { return sizeBuf() - size_o; }
     void compute(nncftyp *inp , nnftyp obuf[] ) const;
     TVFlt compute( CTVFlt &inp ) const;
 
@@ -122,6 +122,13 @@ public:
     );
 
     int forceIdx(CNNData &data , nncftyp bigPenal, nncityp loops , const bool show=true, nncityp rndSeed=1);
+    int forceIdx2(
+        CNNData      &data ,
+        nncftyp      bigPenal,
+        const time_t maxTime,
+        nncityp      maxLoops,
+        const bool   show
+    );
     void randIdxW(FRnd &rnd , nncftyp min=0 , nncftyp max=0 , nncityp maxTry=1000);
     void randWeights(FRnd &rnd , nncftyp min=0, nncftyp max=0);
     void randInputs(FRnd &rnd);
@@ -147,6 +154,14 @@ public:
         nncftyp bigpenal ,         //MM: kara za duże wagi
         nncityp rndSeed ,          //MM: zarodek liczb losowych
         nncftyp pBack              //MM: prawdopodobieństwo powrotu do lepszego rozwiązania
+    );
+    int doubleRndIdxWeightForce(
+        CNNData      &data ,
+        const time_t maxTime,
+        nncityp      maxLoops,
+        nncityp      maxNotIncrese,
+        nncityp      rndSeed,
+        const bool   show = true
     );
     void appendWeight(nncftyp weight, nncftyp min_w, nncftyp max_w);
     void extend(nncftyp weight, nncftyp min_w, nncftyp max_w);

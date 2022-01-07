@@ -1,3 +1,4 @@
+#include <cassert>
 #include <omp.h>
 #include <QFile>
 #include <QTextStream>
@@ -189,7 +190,7 @@ void NNNet::compute( CTVFlt &inp , TVFlt &obuf ) const {
 
 
 TVFlt NNNet::compute( CTVFlt &inp ) const {
-    TVFlt obuf(suzeBuf());
+    TVFlt obuf(sizeBuf());
     compute( inp , obuf );
     return obuf.mid( offsetOut() );
 }
@@ -259,8 +260,8 @@ TVFlt NNNet::gradient( CNNData &data , nncftyp bigPenal ) const {
     NNVec< TVFlt > grads( mt );
     grads.fill( TVFlt( sizeWeights() , 0 ) );
 
-    TVFlt obufs( suzeBuf() );
-    TVFlt ibufs( suzeBuf() );
+    TVFlt obufs( sizeBuf() );
+    TVFlt ibufs( sizeBuf() );
 
 #pragma omp parallel for firstprivate(obufs,ibufs)
     for( nnityp i=0 ; i<data.size() ; i++ ) {
@@ -274,15 +275,15 @@ TVFlt NNNet::gradient( CNNData &data , nncftyp bigPenal ) const {
             grad[j] += grads[i][j];
     }
 
-//    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
-//        grad[i] /= data.size() * size_o;
-//    }
+    for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+        grad[i] /= data.size() * size_o;
+    }
 
     // f = w1^2 + w2^2 + ... + wn^2
     // df/dwi = 2wi
 
     for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
-        grad[i] += 2 * weights[i] * bigPenal * data.size() * size_o;
+        grad[i] += 2 * weights[i] * bigPenal;
     }
 
     return grad;
@@ -492,7 +493,7 @@ void NNNet::momentum2(
         stdOut << "        test";
         stdOut << "   best_test";
     }
-    stdOut<< "      step  ||gradient||   ||weights||         ||p||  fails     time" << endl;
+    stdOut<< "           step   ||gradient||   ||weights||         ||p||  fails     time" << endl;
     nnityp loop = 0;
     const time_t start = time(NULL);
     time_t currTime = start;
@@ -563,12 +564,12 @@ void NNNet::momentum2(
                 stdOut << qSetFieldWidth(11) << testError;
             }
             stdOut << qSetFieldWidth(0) << " ";
-            stdOut << qSetFieldWidth(9) << qSetRealNumberPrecision(6) << step;
+            stdOut << qSetFieldWidth(9) << qSetRealNumberPrecision(12) << step;
             stdOut << qSetFieldWidth(0) << " ";
             TVFlt gr = gradient(learn,bigPenal);
             stdOut << qSetFieldWidth(13)<< fnorm( makeToLearn( gr, toLearn ) );
             stdOut << qSetFieldWidth(0) << " ";
-            stdOut << qSetFieldWidth(13) << fnorm(weights);
+            stdOut << qSetFieldWidth(13) << qSetRealNumberPrecision(8) << fnorm(weights);
             stdOut << qSetFieldWidth(0) << " ";
             stdOut << qSetFieldWidth(13) << fnorm(p);
             stdOut << qSetFieldWidth(0) << " ";
@@ -933,6 +934,97 @@ void NNNet::randWeights( FRnd &rnd , nncftyp min , nncftyp max ) {
     }
 }
 
+int NNNet::doubleRndIdxWeightForce(
+    CNNData      &data ,
+    const time_t maxTime,
+    nncityp      maxLoops,
+    nncityp      maxNotIncrese,
+    nncityp      rndSeed,
+    const bool   show
+) {
+    const time_t start = time(NULL);
+    QTextStream stdOut(stdout);
+    stdOut.setRealNumberPrecision(13);
+    stdOut.setRealNumberNotation( QTextStream::FixedNotation );
+    time_t lastShow = start;
+    FRnd rnd(rndSeed);
+    nnityp sumIncrease = 0;
+    nnityp notIncrese = 0;
+    nnityp callEval = 1;
+    time_t showTime = 0;
+    nnftyp er = error(data);
+
+    stdOut << "    loop ]           error   callEval   sumIncrease    time " << endl;
+    for( nnityp loop=1 ; (maxNotIncrese <= 0 ||  notIncrese < maxNotIncrese ) && (maxLoops <= 0 || loop <= maxLoops) && (maxTime <= 0 || time(NULL)-start < maxTime); loop++ ) {
+        nnityp neuronI,neuronJ,idxWeightI,idxWeightJ;
+        do {
+            neuronI = rnd() % neurons.size();
+            neuronJ = rnd() % neurons.size();
+            idxWeightI = rnd() % neurons[neuronI].idx_w.size();
+            idxWeightJ = rnd() % neurons[neuronJ].idx_w.size();
+        } while( neuronI == neuronJ && idxWeightI == idxWeightJ );
+        nnityp bestI = neurons[neuronI].idx_w[ idxWeightI ];
+        nnityp bestJ = neurons[neuronJ].idx_w[ idxWeightJ ];
+        bool increse = false;
+        for( nnityp i = neurons[neuronI].min_w ; i <= neurons[neuronI].max_w ; i++ ) {
+            neurons[neuronI].idx_w[ idxWeightI ] = i;
+            for( nnityp j = neurons[neuronJ].min_w ; j <= neurons[neuronJ].max_w ; j++ ) {
+                neurons[neuronJ].idx_w[ idxWeightJ ] = j;
+                nncftyp tmp = error(data); callEval ++ ;
+                if( tmp <= er ) {
+                    if( tmp < er ) {
+                        increse = true;
+                        sumIncrease ++ ;
+                        er = tmp;
+                    }
+                    bestI = i;
+                    bestJ = j;
+                }
+                if( show ) {
+                    const time_t currTime = time(NULL);
+                    if( currTime - lastShow >= showTime ) {
+                        stdOut << qSetFieldWidth(8)  << loop;
+                        stdOut << qSetFieldWidth(0)  << " ] ";
+                        stdOut << qSetFieldWidth(15) << er;
+                        stdOut << qSetFieldWidth(0)  << " ";
+                        stdOut << qSetFieldWidth(10)  << callEval;
+                        stdOut << qSetFieldWidth(0)  << " ";
+                        stdOut << qSetFieldWidth(13) << sumIncrease;
+                        stdOut << qSetFieldWidth(0)  << " ";
+                        stdOut << qSetFieldWidth(7)  << (currTime-start);
+                        stdOut << qSetFieldWidth(0)  << "s" << endl;
+                        if( currTime - start > 7200 ) {
+                            showTime = 120;
+                        } else if( currTime - start > 3600 ) {
+                            showTime =  60;
+                        } else if( currTime - start > 1800 ) {
+                            showTime =  30;
+                        } else if( currTime - start > 600 ) {
+                            showTime =  20;
+                        } else if( currTime - start > 120 ) {
+                            showTime =  15;
+                        } else if( currTime - start >  60 ) {
+                            showTime =  10;
+                        } else {
+                            showTime =   5;
+                        }
+                        lastShow = currTime;
+                    }
+                }
+            }
+        }
+        neurons[neuronI].idx_w[ idxWeightI ] = bestI;
+        neurons[neuronJ].idx_w[ idxWeightJ ] = bestJ;
+        if( increse ) {
+            notIncrese = 0;
+        } else {
+            notIncrese ++ ;
+        }
+    }
+    return sumIncrease;
+}
+
+
 int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool show , nncityp rndSeed ) {
     FRnd rnd(rndSeed);
     int increse = 0;
@@ -968,6 +1060,63 @@ int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool
     }
     return increse;
 }
+
+
+int NNNet::forceIdx2(
+    CNNData      &data ,
+    nncftyp      bigPenal,
+    const time_t maxTime,
+    nncityp      maxLoops,
+    const bool   show
+) {
+    const time_t start = time(NULL);
+    int increse = 0;
+
+    QTextStream stdo(stdout);
+
+    stdo.setRealNumberPrecision(10);
+    stdo.setRealNumberNotation( QTextStream::FixedNotation );
+
+    nnftyp er = error(data);
+    bool isIncrese = true;
+
+    for( nnityp loop=1 ; isIncrese && ( maxTime <= 0 || time(NULL)-start < maxTime) && (maxLoops <= 0 || loop <= maxLoops); loop++ ) {
+
+        isIncrese = false;
+
+        for( nnityp i=0 ; i<neurons.size()  && ( maxTime <= 0 || time(NULL)-start < maxTime) ; i++ ) {
+            NNNeuron &n = neurons[ i ];
+            TVInt &idx_i = n.idx_i;
+            TVInt &idx_w = n.idx_w;
+            assert( idx_i.size() == idx_w.size() );
+            for( int j=0 ; j < idx_i.size() ; j++ ) {
+                nnityp best_i = idx_i[j];
+                nnityp best_w = idx_w[j];
+                for( nnityp l=n.min_i ; l<=n.max_i ; l++ ) {
+                    idx_i[ j ] = l;
+                    for( nnityp k=n.min_w ; k<=n.max_w ; k++ ) {
+                        idx_w[ j ] = k;
+                        nncftyp tmp = error(data,bigPenal);
+                        if( tmp < er ) {
+                            isIncrese = true ;
+                            increse ++ ;
+                            er = tmp;
+                            best_i = l;
+                            best_w = k;
+                            if( show ) {
+                                stdo << loop << "] " << i << " " << j << " " << k << " " << er << endl;
+                            }
+                        }
+                    }
+                }
+                idx_i[j] = best_i;
+                idx_w[j] = best_w;
+            }
+        }
+    }
+    return increse;
+}
+
 
 int NNNet::forcePairIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool show , nncityp rndSeed ) {
     FRnd rnd(rndSeed);
@@ -1527,7 +1676,7 @@ nnftyp NNNet::error( CNNRecord &rec , TVFlt &obuf ) const {
 
 nnftyp NNNet::error( CNNData &data , nncftyp bigpenal, nnityp start , nnityp end ) const {
     nnftyp sum = 0;
-    TVFlt obuf( suzeBuf() );
+    TVFlt obuf( sizeBuf() );
     if( start < 0 ) {
         start = 0;
         end   = data.size();
@@ -1545,7 +1694,7 @@ nnftyp NNNet::error( CNNData &data , nncftyp bigpenal, nnityp start , nnityp end
 
 // Oblicza
 nnftyp NNNet::simpClass( CNNData &data ) const {
-    TVFlt obuf( suzeBuf() );
+    TVFlt obuf( sizeBuf() );
     nnftyp sum = 0;
     for( nnityp i=0 ; i<data.size() ; i++ ) {
         compute( data[i].getInps() , obuf );

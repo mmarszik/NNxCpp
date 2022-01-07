@@ -1,0 +1,194 @@
+size_inputs:         4 # rozmiar wejścia
+size_outputs:        5 # rozmiar wyjścia
+size_neurons:       19 # ilość neuronów
+size_weights:        7 # ilość wag
+size_convols:        1 # ilość splotów
+
+weights_penal: +0.001000000000000 # kara za duże wagi
+signal_penal:  +0.010000000000000 # kara za duże sygnały
+
+rnd_seed:       +1 # zarodek liczb losowych
+
+weights: -100.000000000000000, +100.000000000000000              # wagi
+  weight_0:   -0.548402406868672, -100.000000000000000, +100.000000000000000, # waga nr 1
+  weight_1:   +2.043011411344990, -100.000000000000000, +100.000000000000000, # waga nr 2
+  weight_2:   -2.868085068198090, -100.000000000000000, +100.000000000000000, # waga nr 3
+  weight_3:   +0.404954124487607, -100.000000000000000, +100.000000000000000, # waga nr 4
+  weight_4:   -2.130017679802397, -100.000000000000000, +100.000000000000000, # waga nr 5
+  weight_5:   -0.1, -100.000000000000000, +100.000000000000000, # waga nr 5
+  weight_6:   +0.1, -100.000000000000000, +100.000000000000000, # waga nr 5
+endWeights
+
+
+neuron:0      #neuron 0; input: 4
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 2, 3, 2, 4
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:1      #neuron 1; input: 5
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 1, 4, 2, 3
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:2      #neuron 2; input: 6
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 2, 0, 1, 0
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:3      #neuron 3; input: 7
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 1, 3, 2, 2
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:4      #neuron 4; input: 8
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 1, 2, 2, 4
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:5      #neuron 5; input: 9
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 2, 2, 1, 2
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:6      #neuron 6; input: 10
+  actv: nname
+  conv: -1
+  inp: 0, 1, 2, 3
+  rng_inputs: 0, 3
+  weights: 1, 1, 1, 1
+  rng_weights: 0, 6
+  rng_size: 4, 4
+
+neuron:7      #neuron 7; input: 11
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 2, 0, 0, 0, 0, 1, 0, 1
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:8      #neuron 8; input: 12
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 1, 0, 0, 1, 2, 0, 0, 0
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:9      #neuron 9; input: 13
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 3, 3, 2, 1, 2, 2, 0, 0
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:10      #neuron 10; input: 14
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 1, 3, 2, 4, 3, 2, 2, 1
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:11      #neuron 11; input: 15
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 0, 2, 1, 0, 1, 2, 0, 2
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:12      #neuron 12; input: 16
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 4, 3, 4, 2, 1, 1, 0, 2
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:13      #neuron 13; input: 17
+  actv: nname
+  conv: -1
+  inp: 0, 4, 5, 6, 7, 8, 9, 10
+  rng_inputs: 0, 10
+  weights: 1, 1, 3, 0, 2, 1, 0, 1
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:14      #neuron 14; input: 18
+  actv: nname
+  conv: -1
+  inp: 0, 11, 12, 13, 14, 15, 16, 17
+  rng_inputs: 0, 10
+  weights: 2, 1, 2, 2, 0, 0, 1, 2
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:15      #neuron 15; input: 19
+  actv: nname
+  conv: -1
+  inp: 0, 11, 12, 13, 14, 15, 16, 17
+  rng_inputs: 0, 10
+  weights: 2, 1, 2, 1, 1, 1, 1, 0
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:16      #neuron 16; input: 20
+  actv: nname
+  conv: -1
+  inp: 0, 11, 12, 13, 14, 15, 16, 17
+  rng_inputs: 0, 10
+  weights: 2, 1, 2, 0, 0, 1, 2, 4
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:17      #neuron 17; input: 21
+  actv: nname
+  conv: -1
+  inp: 0, 11, 12, 13, 14, 15, 16, 17
+  rng_inputs: 0, 10
+  weights: 4, 0, 1, 2, 1, 0, 0, 2
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+neuron:18      #neuron 18; input: 22
+  actv: nname
+  conv: -1
+  inp: 0, 11, 12, 13, 14, 15, 16, 17
+  rng_inputs: 0, 10
+  weights: 0, 0, 1, 1, 4, 3, 4, 3
+  rng_weights: 0, 6
+  rng_size: 8, 8
+
+endNeurons
