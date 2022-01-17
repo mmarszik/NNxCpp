@@ -1,4 +1,5 @@
 #include <cassert>
+#include <limits>
 #include <omp.h>
 #include <QFile>
 #include <QTextStream>
@@ -749,6 +750,125 @@ void NNNet::learnRand3(
     ;
 }
 
+void NNNet::multiInit(
+    CNNData &data,
+    const time_t maxTime,
+    nncityp maxLoops,
+    nncityp minWeight,
+    nncityp maxWeight,
+    const bool rndWeight,
+    const bool rndIdxWeight,
+    const bool rndInput,
+    nncftyp bigPenal,
+    nncityp rndSeed,
+    nncityp bestSize,
+    const bool show
+) {
+    struct RngValue {
+        nnftyp range;
+        nnftyp value;
+        nnityp use = 1;
+        RngValue() {}
+        RngValue( nncftyp range, nncftyp value) : range(range), value(value) {
+        }
+        bool operator < (const RngValue &other) const {
+            return value < other.value;
+        }
+        bool operator == (const RngValue &other) const {
+            return fabs( this->range - other.range ) <= std::numeric_limits<nnftyp>::epsilon() * std::max( fabs(this->range) , fabs(other.range) );
+        }
+    };
+    QTextStream stdOut(stdout);
+    stdOut.setRealNumberPrecision(6);
+    stdOut.setRealNumberNotation( QTextStream::FixedNotation );
+
+    FRnd rnd(rndSeed);
+    QVector<RngValue> bestRanges;
+    const time_t start =  time(NULL);
+    time_t lastShow = start;
+    time_t showTime = 5;
+    nnftyp value = error(data);
+    NNNet bestNN = *this;
+    for( int loop=1 ; ( maxLoops <= 0 || loop <= maxLoops ) && ( maxTime <= 0 || (time(nullptr) - start) < maxTime ) ; loop++ ) {
+        nnftyp range;
+        if( rndWeight ) {
+            if( bestRanges.size() > 0 && rnd() % 2 ) {
+                range = bestRanges[ (rnd() % bestRanges.size()) /  8 ].range;
+            } else if( bestRanges.size() > 0 && rnd() % 2 ) {
+                range = bestRanges[ (rnd() % bestRanges.size()) /  4 ].range;
+            } else if( bestRanges.size() > 0 && rnd() % 2 ) {
+                range = bestRanges[ (rnd() % bestRanges.size()) /  2 ].range;
+            } else if( bestRanges.size() > 0 && rnd() % 2 ) {
+                range = bestRanges[ (rnd() % bestRanges.size()) /  1 ].range;
+            } else {
+//                range = rnd.getF( minWeight , maxWeight );
+                nncityp diffRnd = 10000;
+                range = ( (nnftyp)( rnd() % (diffRnd+1) ) / diffRnd ) * ( maxWeight - minWeight ) + minWeight;
+            }
+            randWeights( rnd , -range , +range );
+        }
+        if( rndInput ) {
+            randInputs(rnd);
+        }
+        if( rndIdxWeight ) {
+            randIdxW( rnd );
+        }
+        nncftyp newValue = error( data, bigPenal );
+        if( rndWeight ) {
+            nncityp idx = bestRanges.indexOf( RngValue(range,newValue) );
+            if( idx < 0 ) {
+                bestRanges += RngValue(range,newValue);
+            } else {
+                bestRanges[idx].value *= bestRanges[idx].use;
+                bestRanges[idx].value += newValue;
+                bestRanges[idx].value /= ++bestRanges[idx].use;
+            }
+            std::sort( bestRanges.begin() , bestRanges.end() );
+            if( bestRanges.size() > bestSize ) {
+                bestRanges.pop_back();
+            }
+        }
+        if( newValue < value ) {
+            value = newValue;
+            bestNN = *this;
+        }
+
+        if( show ) {
+            const time_t currTime = time(NULL);
+            if( currTime - lastShow >= showTime ) {
+                stdOut << "loop=" << loop << " time=" << (time(nullptr) - start) << "s value=" << value << endl;
+                const bool fullShow = false;
+                if( fullShow ) {
+                    for( int i=0 ; i<bestRanges.size() ; i++ ) {
+                        stdOut << i << "] " << bestRanges[i].value << " " << bestRanges[i].range << " " << bestRanges[i].use << endl;
+                    }
+                    stdOut << "---------------------------------------" << endl;
+                }
+                if( currTime - start > 7200 ) {
+                    showTime = 120;
+                } else if( currTime - start > 3600 ) {
+                    showTime =  60;
+                } else if( currTime - start > 1800 ) {
+                    showTime =  30;
+                } else if( currTime - start > 600 ) {
+                    showTime =  20;
+                } else if( currTime - start > 120 ) {
+                    showTime =  15;
+                } else if( currTime - start >  60 ) {
+                    showTime =  10;
+                } else {
+                    showTime =   5;
+                }
+                lastShow = currTime;
+            }
+        }
+
+        if( loop == bestSize*3 || loop % 10000 == 0 ) {
+        }
+    }
+    *this = bestNN;
+}
+
 
 
 
@@ -1025,14 +1145,14 @@ int NNNet::doubleRndIdxWeightForce(
 }
 
 
-int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const bool show , nncityp rndSeed ) {
-    FRnd rnd(rndSeed);
+int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const bool show ) {
     int increse = 0;
     QTextStream stdo(stdout);
     stdo.setRealNumberPrecision(8);
     stdo.setRealNumberNotation( QTextStream::FixedNotation );
     nnftyp er = error(data);
-    for( nnityp loop=0 ; loop<loops ; loop ++ ) {
+    const time_t start = time(nullptr);
+    for( nnityp loop=0 ; (time(nullptr)-start) <= maxTime ; loop ++ ) {
         bool work = false;
         for( nnityp i=0 ; i<neurons.size() ; i++ ) {
             NNNeuron &n = neurons[ i ];

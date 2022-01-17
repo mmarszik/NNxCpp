@@ -98,6 +98,7 @@ public:
     TVFlt gradientN( CNNData &data );
 
     nnityp sizeWeights() const { return weights.size(); }
+    nnityp sizeNeurons() const { return neurons.size(); }
     TVFlt gradient(CNNData &data , nncftyp bigpenal=0) const;
     TVFlt subGradient(CNNData &data , CTVInt &sub ) const;
     void rawDescent(CNNData &data , nncityp loops , nncftyp step , CTVFlt &tolearn);
@@ -121,7 +122,7 @@ public:
         const bool idx_input
     );
 
-    int forceIdx(CNNData &data , nncftyp bigPenal, nncityp loops , const bool show=true, nncityp rndSeed=1);
+    int forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const bool show );
     int forceIdx2(
         CNNData      &data ,
         nncftyp      bigPenal,
@@ -173,6 +174,21 @@ public:
     void annealing(CNNData &data, nncftyp bigPenal, nncityp maxTime, nncftyp minStrength, nncftyp maxStrength, nncftyp pBack, nnityp rndSeed);
     int forcePairIdx(CNNData &data, nncftyp bigPenal, nncityp loops, const bool show, nncityp rndSeed);
     void learnRand3(CNNData &learn, CNNData &test, const time_t maxTime, nncityp maxFailsTest, nncftyp maxStep, nncftyp minStep, nncftyp bigPenal, nncityp rndSeed, NNNet *const best=NULL, const bool fullVerb=false);
+
+    void multiInit(CNNData &data,
+        const time_t maxTime,
+        nncityp maxLoops,
+        nncityp minWeight,
+        nncityp maxWeight,
+        const bool rndWeight,
+        const bool rndIdxWeight,
+        const bool rndInput,
+        nncftyp bigPenal = 1E-9,
+        nncityp rndSeed = 1,
+        nncityp bestSize = 100 ,
+        const bool show = true
+    );
+
 };
 
 
