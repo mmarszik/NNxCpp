@@ -1145,14 +1145,14 @@ int NNNet::doubleRndIdxWeightForce(
 }
 
 
-int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const bool show ) {
+int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const int maxLoops, const bool show ) {
     int increse = 0;
     QTextStream stdo(stdout);
     stdo.setRealNumberPrecision(8);
     stdo.setRealNumberNotation( QTextStream::FixedNotation );
     nnftyp er = error(data);
     const time_t start = time(nullptr);
-    for( nnityp loop=0 ; (time(nullptr)-start) <= maxTime ; loop ++ ) {
+    for( nnityp loop=0 ; ( maxTime <= 0 || (time(nullptr)-start) <= maxTime ) && (maxLoops <= 0 || loop < maxLoops) ; loop ++ ) {
         bool work = false;
         for( nnityp i=0 ; i<neurons.size() ; i++ ) {
             NNNeuron &n = neurons[ i ];

@@ -122,7 +122,7 @@ public:
         const bool idx_input
     );
 
-    int forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const bool show );
+    int forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const int maxLoops, const bool show );
     int forceIdx2(
         CNNData      &data ,
         nncftyp      bigPenal,

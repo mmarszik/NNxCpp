@@ -253,7 +253,7 @@ void experiment0(const bool reLearn) {
     nn.save( "nndef_out.txt" );
 
 
-    nn.forceIdx(learn,bigPenal,1E4,true);
+    nn.forceIdx(learn,bigPenal,1E4,0,true);
     stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
@@ -525,7 +525,7 @@ void experiment3( const bool reLearn ) {
 
     if( ! reLearn )
     {
-        nn.forceIdx(learn,bigPenal,1E4,true);
+        nn.forceIdx(learn,bigPenal,1E4,0,true);
         stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
@@ -604,7 +604,7 @@ void experimentA() {
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
-    nn.forceIdx(subLearn,bigPenal,2*3600,true);
+    nn.forceIdx(subLearn,bigPenal,2*3600,0,true);
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
@@ -618,7 +618,7 @@ void experimentA() {
                     change += nnTmp.chaos( rnd , 1 , false , true , false );
                 } while( change == 0 || rnd() % 2 );
             }
-            nnTmp.forceIdx(subLearn, bigPenal, 300, true );
+            nnTmp.forceIdx(subLearn, bigPenal,0, 300, true );
             if( nnTmp.error(subLearn) <= nn.error(subLearn) ) {
                 nn = nnTmp;
                 nn.save( "nndef_out.txt" );
@@ -675,8 +675,7 @@ void experimentB() {
     stdOut << "rndSeed=" << rndSeed << endl;
     FRnd rnd( rndSeed );
 
-    NNData subLearn = learn;//.rndSelect( 20000 , 1 );
-    subLearn = learn;
+    NNData subLearn = learn;//.rndSelect( 10000 , 1 );
 
     const time_t start = time(NULL);
     nnftyp bigPenal = 1E-12;
@@ -690,26 +689,87 @@ void experimentB() {
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
-    nn.forceIdx(subLearn,bigPenal,2*3600,true);
+    while( nn.forceIdx(subLearn,bigPenal,3600, 1 , true) ) {
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+
+        nn.learnRand1( subLearn, bigPenal, 600 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+    }
+
+    nn.learnRand1( subLearn, bigPenal, 1800 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
     nn.toUniqueWeights();
 
     for( int loop=1 ; true ; loop++ ) {
-        nn.momentum2( subLearn , CNNData(), 1800 , 0, 0.01, 0.1, 1E-9, 0.95, CTVFlt(), bigPenal, 3, nullptr);
+        nn.momentum2( subLearn , CNNData(), 1800 , 0, 0.01, 0.1, 1E-9, 0.99, CTVFlt(), bigPenal, 3, nullptr);
         stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( subLearn, bigPenal, 1800 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
+        nn.learnRand1( subLearn, bigPenal, 1800 , 1E4 , 1E-9, 0.0001 , 0.01 , rnd(), true, false, false );
         stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+
+//        subLearn = learn.rndSelect( (loop+1)*10000 , 1 );
+
+    }
+
+}
+
+
+void experimentC() {
+    QTextStream stdOut(stdout);
+    const int learnSize = 80000;
+    NNData learn, test;
+    {
+        FRnd rnd(1);
+        CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
+        data.split( learn , learnSize, test, data.size()-learnSize, rnd() );
+    }
+
+//  const unsigned long long rndSeed = 3778521842;
+    const unsigned long long rndSeed = std::random_device()();
+
+    stdOut << "rndSeed=" << rndSeed << endl;
+    FRnd rnd( rndSeed );
+
+    NNData subLearn = learn;//.rndSelect( 10000 , 1 );
+
+    const time_t start = time(NULL);
+    nnftyp bigPenal = 1E-12;
+
+    NNNet nn;
+    nn.read("nndef.txt" );
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    nn.save( "nndef_out.txt" );
+
+    nn.randIdxW(rnd);
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    nn.save( "nndef_out.txt" );
+
+    nn.toUniqueWeights();
+    nn.randWeights(rnd,-0.1,+0.1);
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    nn.save( "nndef_out.txt" );
+
+    for( int loop=1 ; true ; loop++ ) {
+        nn.momentum2( subLearn , CNNData(), 1800 , 0, 0.05, 1, 1E-9, 0.9, CTVFlt(), bigPenal, 3, nullptr);
+        stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.save( "nndef_out.txt" );
+
+        nn.learnRand1( subLearn, bigPenal, 300 , 1E4 , 1E-9, 0.0001 , 0.01*loop , rnd(), true, false, false );
+        stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
 
 }
 
+
 int main(int argc, char *argv[])
 {
-    experimentB();
+    experimentC();
     return 0;
 }
