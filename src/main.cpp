@@ -600,7 +600,7 @@ void experimentA() {
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
-    nn.multiInit( subLearn , 600 , 0 , 0.001 , 100, false, true, false, bigPenal, 1, 64 );
+    nn.multiInit( subLearn , 1200 , 0 , 0.001 , 100, false, true, false, bigPenal, 1, 64 );
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
@@ -618,7 +618,7 @@ void experimentA() {
                     change += nnTmp.chaos( rnd , 1 , false , true , false );
                 } while( change == 0 || rnd() % 2 );
             }
-            nnTmp.forceIdx(subLearn, bigPenal,0, 300, true );
+            nnTmp.forceIdx(subLearn, bigPenal,1200, 0, true );
             if( nnTmp.error(subLearn) <= nn.error(subLearn) ) {
                 nn = nnTmp;
                 nn.save( "nndef_out.txt" );
@@ -689,32 +689,26 @@ void experimentB() {
     stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
     nn.save( "nndef_out.txt" );
 
-    while( nn.forceIdx(subLearn,bigPenal,3600, 1 , true) ) {
+    for( int loop=0 ; loop<3 ; loop++ ) {
+        nn.forceIdx(subLearn,bigPenal, 3600, 1 , true);
         stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( subLearn, bigPenal, 600 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
+        nn.learnRand1( subLearn, bigPenal, 1200 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
         stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
     }
 
-    nn.learnRand1( subLearn, bigPenal, 1800 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-    nn.save( "nndef_out.txt" );
-
     nn.toUniqueWeights();
 
     for( int loop=1 ; true ; loop++ ) {
-        nn.momentum2( subLearn , CNNData(), 1800 , 0, 0.01, 0.1, 1E-9, 0.99, CTVFlt(), bigPenal, 3, nullptr);
+        nn.momentum2( subLearn , CNNData(), 1200 , 0, 0.01, 0.1, 1E-9, 0.95, CTVFlt(), bigPenal, 3, nullptr);
         stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( subLearn, bigPenal, 1800 , 1E4 , 1E-9, 0.0001 , 0.01 , rnd(), true, false, false );
+        nn.learnRand1( subLearn, bigPenal, 1200 , 1E4 , 1E-9, 0.0001 , 0.03 , rnd(), true, false, false );
         stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
         nn.save( "nndef_out.txt" );
-
-//        subLearn = learn.rndSelect( (loop+1)*10000 , 1 );
-
     }
 
 }
@@ -770,6 +764,6 @@ void experimentC() {
 
 int main(int argc, char *argv[])
 {
-    experimentC();
+    experimentA();
     return 0;
 }
