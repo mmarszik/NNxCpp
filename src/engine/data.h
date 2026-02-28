@@ -113,7 +113,10 @@ public:
         nncityp end_inp,        // końcowe wejście
         nncityp size_out,       // ilość wyjść
         const QString &path,   // ścieżka do pliku
-        const QString &sep     // separator pola
+        const QString &sep,     // separator pola
+        nncityp skipPermile=0 , // promil ominiętych danych
+        nncityp skipSeed=1234   // random seed do omijania wierszy
+
     );
 
 

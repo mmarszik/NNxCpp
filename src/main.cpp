@@ -67,7 +67,7 @@ void fromStart() {
     }
 
     const unsigned long long rndSeed = std::random_device()();
-    stdOut << "rndSeed=" << rndSeed << endl;
+    stdOut << "rndSeed=" << rndSeed << Qt::endl;
     FRnd rnd(rndSeed);
 
     const time_t start = time(NULL);
@@ -75,9 +75,9 @@ void fromStart() {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.toUniqueWeights(0);
-    stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.randWeights(rnd,-1.0,+1.0);
     nn.save( "nndef_out.txt" );
 
@@ -97,11 +97,11 @@ void fromStart() {
             if( tmpE < e || loop==1 ) {
                 e = tmpE;
                 nn = tmpNN;
-                stdOut << "init loop=" << loop << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+                stdOut << "init loop=" << loop << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
                 nn.save( "nndef_out.txt" );
             }
         }
-        stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << "learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     }
 
     TVFlt toLearn( nn.sizeWeights() , 1.0 );
@@ -124,13 +124,13 @@ void fromStart() {
             nncftyp maxStep   =  parts[loop] < 500 ? 1E-2 : parts[loop] <= 1000 ? 5E-2 : 1E-1;
             nncftyp bigPenal2 =  bigPenal;
 
-            nn.momentum2( subLearn , subTest, 3600*24, 30, 1E-6, maxStep, 1E-9, 0.80, toLearn, bigPenal2, 5, &best);
+            nn.momentum2( subLearn , subTest, 3600*24, 0, 30, 1E-6, maxStep, 1E-9, 0.80, toLearn, bigPenal2, 5, &best);
             nn = best;
             stdOut << "momentum2;  loop=" << loop;
             stdOut << " part=" << parts[loop];
             stdOut << " learn error=" << nn.error( learn , bigPenal );
             stdOut << " test=" << classify( test ,nn ) << "%";
-            stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+            stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
             nn.save( "nndef_out.txt" );
         }
         bigPenal /= 5;
@@ -143,20 +143,20 @@ void fromStart() {
     {
         for( nnityp loop=1 ; true ; loop++ ) {
             {
-                nn.learnRand1( learn, bigPenal, 600, 0, 1E-12, 1E-6 , 1E-1 , rnd(), true, false, false );
+                nn.learnRand1( learn, bigPenal, 600, 0, 0, 1E-12, 1E-6 , 1E-1 , rnd(), true, false, false );
                 stdOut << "learnRand1; loop=" << loop;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
-                stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+                stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
                 nn.save("nndef_out.txt" );
             }
 
             {
-                nn.momentum2( learn , CNNData(), 3000, 0, 1E-3, 1E-3, 1E-9, 0.5, toLearn, bigPenal, 5, nullptr);
+                nn.momentum2( learn , CNNData(), 3000, 0, 0, 1E-3, 1E-3, 1E-9, 0.5, toLearn, bigPenal, 5, nullptr);
                 stdOut << "momentum2;  loop=" << loop;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
-                stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+                stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
                 nn.save( "nndef_out.txt" );
             }
         }
@@ -182,10 +182,10 @@ void nextLearn() {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
 
     nn.toUniqueWeights( 1 );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     {
@@ -196,22 +196,22 @@ void nextLearn() {
 
             if( loop >= 1 )
             {
-                nn.momentum2( learn , CNNData(), 3000, 0, 5E-2, 5E-2, 1E-12, 0.995, toLearn, bigPenal, 5, nullptr);
+                nn.momentum2( learn , CNNData(), 3000, 0,  0, 5E-2, 5E-2, 1E-12, 0.995, toLearn, bigPenal, 5, nullptr);
                 stdOut << "momentum2;  loop=" << loop;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
-                stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+                stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
                 nn.save( "nndef_out.txt" );
             }
 
             if( loop >= 1 )
             {
                 //nn.annealing(learn,bigPenal,1800,1E-6,1E-3,0.4,rnd());
-                nn.learnRand1(learn,bigPenal,600,0,1E-9,1E-6,1E-2,rnd(),true,false,false);
+                nn.learnRand1(learn,bigPenal,600,0,0,1E-9,1E-6,1E-2,rnd(),true,false,false);
                 stdOut << "learnRand1; loop=" << loop;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
-                stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+                stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
                 nn.save("nndef_out.txt" );
             }
 
@@ -233,7 +233,7 @@ void experiment0(const bool reLearn) {
     }
 
     const unsigned long long rndSeed = std::random_device()();
-    stdOut << "rndSeed=" << rndSeed << endl;
+    stdOut << "rndSeed=" << rndSeed << Qt::endl;
     FRnd rnd(rndSeed);
 
     const time_t start = time(NULL);
@@ -241,7 +241,7 @@ void experiment0(const bool reLearn) {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
 
 //    nn.toUniqueWeights(0);
 //    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
@@ -249,12 +249,12 @@ void experiment0(const bool reLearn) {
 
 //    nn.randWeights(rnd,-0.1,+0.1);
     nn.randIdxW( rnd );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
 
     nn.forceIdx(learn,bigPenal,1E4,0,true);
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
 
@@ -266,23 +266,23 @@ void experiment0(const bool reLearn) {
         nncftyp oldError = nn.error( learn, bigPenal );
 
         {
-            nn.learnRand1( learn, bigPenal,  1800, 0, 1E-12, 0.001 , 0.005 , rnd(), true, true, false );
+            nn.learnRand1( learn, bigPenal,  1800,0, 0, 1E-12, 0.001 , 0.005 , rnd(), true, true, false );
             stdOut << "learnRand1; loop=" << loop;
             stdOut << " learn_error=" << nn.error( learn , bigPenal );
             stdOut << " best_error=" << best.error( learn , bigPenal );
             stdOut << " test=" << classify( test ,nn ) << "%";
             stdOut << " best_test=" << classify( test ,best ) << "%";
-            stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+            stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         }
 
         {
-            nn.momentum2( learn , CNNData(), 1800, 0, 0.001, 0.1, 1E-12, 0.99, CTVFlt(), bigPenal, 1, nullptr);
+            nn.momentum2( learn , CNNData(), 1800, 0, 0, 0.001, 0.1, 1E-12, 0.99, CTVFlt(), bigPenal, 1, nullptr);
             stdOut << "momentum2;  loop=" << loop;
             stdOut << " learn_error=" << nn.error( learn , bigPenal );
             stdOut << " best_error=" << best.error( learn , bigPenal );
             stdOut << " test=" << classify( test ,nn ) << "%";
             stdOut << " best_test=" << classify( test ,best ) << "%";
-            stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+            stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         }
 
         if( loop == 1 ) {
@@ -311,7 +311,7 @@ void experiment0(const bool reLearn) {
             stdOut << " best_error=" << best.error( learn , bigPenal );
             stdOut << " test=" << classify( test ,nn ) << "%";
             stdOut << " best_test=" << classify( test ,best ) << "%";
-            stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+            stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         }
 
     }
@@ -343,8 +343,8 @@ void experiment1( const bool reLearn ) {
 
     const unsigned long long rndSeed1 = std::random_device()();
     const unsigned long long rndSeed2 = std::random_device()();
-    stdOut << "rndSeed1=" << rndSeed1 << endl;
-    stdOut << "rndSeed2=" << rndSeed2 << endl;
+    stdOut << "rndSeed1=" << rndSeed1 << Qt::endl;
+    stdOut << "rndSeed2=" << rndSeed2 << Qt::endl;
     FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
@@ -352,19 +352,19 @@ void experiment1( const bool reLearn ) {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
 
     if( ! reLearn )
     {
         nn.toUniqueWeights(0);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
     if( ! reLearn )
     {
         nn.randWeights(rnd,-0.1,+0.1);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
@@ -380,7 +380,7 @@ void experiment1( const bool reLearn ) {
                 nncftyp er1 = nn.error(subLearn,bigPenal);
 
                 NNNet bestNN = nn;
-                nn.momentum2(subLearn , subTest, 1800, maxFails, maxStep/100, maxStep, 1E-12, 0.97, CTVFlt(), bigPenal, 1, &bestNN);
+                nn.momentum2(subLearn , subTest, 1800, 0, maxFails, maxStep/100, maxStep, 1E-12, 0.97, CTVFlt(), bigPenal, 1, &bestNN);
                 nn = bestNN;
 
                 stdOut << "momentum2;  parts=" << parts[p];
@@ -390,7 +390,7 @@ void experiment1( const bool reLearn ) {
                 stdOut << " maxFails=" << maxFails;
                 stdOut << " learn error=" << nn.error( learn , bigPenal );
                 stdOut << " test=" << classify( test ,nn ) << "%";
-                stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+                stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
                 nn.save( "nndef_out.txt" );
 
                 nncftyp er2 = nn.error(subLearn,bigPenal);
@@ -425,8 +425,8 @@ void experiment2( const bool reLearn ) {
 
     const unsigned long long rndSeed1 = std::random_device()();
     const unsigned long long rndSeed2 = std::random_device()();
-    stdOut << "rndSeed1=" << rndSeed1 << endl;
-    stdOut << "rndSeed2=" << rndSeed2 << endl;
+    stdOut << "rndSeed1=" << rndSeed1 << Qt::endl;
+    stdOut << "rndSeed2=" << rndSeed2 << Qt::endl;
     FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
@@ -434,47 +434,47 @@ void experiment2( const bool reLearn ) {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
 
     if( ! reLearn )
     {
         nn.toUniqueWeights(1);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
     if( ! reLearn )
     {
         nn.randWeights(rnd,-0.4,+0.4);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
     if( false )
     {
-        nn.learnRand1( learn.rndSelect(8000,rndSeed2), bigPenal, 3600 , 0, 0, 0.001, 0.3 , rnd(), true, false, false );
+        nn.learnRand1( learn.rndSelect(8000,rndSeed2), bigPenal, 3600, 0 , 0, 0, 0.001, 0.3 , rnd(), true, false, false );
         stdOut << "learnRand1;  loop=" << 0;
         stdOut << " learn error=" << nn.error( learn , bigPenal );
         stdOut << " test=" << classify( test ,nn ) << "%";
-        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
     for( nnityp loop=1 ; true ; loop++ ) {
         nncftyp er1 = nn.error(learn,bigPenal);
 
-        nn.momentum2(learn , CNNData(), 1200, 0, 1E-2, 0.05, 1E-14, 0.9, CTVFlt(), bigPenal, 1, NULL);
+        nn.momentum2(learn , CNNData(), 1200, 0 , 0, 1E-2, 0.05, 1E-14, 0.9, CTVFlt(), bigPenal, 1, NULL);
         stdOut << " momentum2;  loop=" << loop;
         stdOut << " learn error=" << nn.error( learn , bigPenal );
         stdOut << " test=" << classify( test ,nn ) << "%";
-        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( learn, bigPenal, 1200 , 0, 0, 0.001, 0.1 , rnd(), true, false, false );
+        nn.learnRand1( learn, bigPenal, 1200 , 0, 0, 0, 0.001, 0.1 , rnd(), true, false, false );
         stdOut << "learnRand1;  loop=" << loop;
         stdOut << " learn error=" << nn.error( learn , bigPenal );
         stdOut << " test=" << classify( test ,nn ) << "%";
-        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
 
 
@@ -505,8 +505,8 @@ void experiment3( const bool reLearn ) {
 
     const unsigned long long rndSeed1 = std::random_device()();
     const unsigned long long rndSeed2 = std::random_device()();
-    stdOut << "rndSeed1=" << rndSeed1 << endl;
-    stdOut << "rndSeed2=" << rndSeed2 << endl;
+    stdOut << "rndSeed1=" << rndSeed1 << Qt::endl;
+    stdOut << "rndSeed2=" << rndSeed2 << Qt::endl;
     FRnd rnd(rndSeed1);
 
     const time_t start = time(NULL);
@@ -514,19 +514,19 @@ void experiment3( const bool reLearn ) {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
 
     if( ! reLearn )
     {
         nn.randIdxW(rnd,-1,+1);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
     if( ! reLearn )
     {
         nn.forceIdx(learn,bigPenal,1E4,0,true);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
@@ -540,7 +540,7 @@ void experiment3( const bool reLearn ) {
     if( ! reLearn )
     {
         nn.toUniqueWeights(0);
-        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " learn error=" << nn.error( learn , bigPenal ) << " test=" << classify( test ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
@@ -553,12 +553,12 @@ void experiment3( const bool reLearn ) {
 
     for( nnityp loop=1 ; true ; loop++ ) {
         nncftyp er1 = nn.error(learn,bigPenal);
-        nn.momentum2(learn , CNNData(), 1800, 0, 1E-1, 1, 1E-14, 0.9, CTVFlt(), bigPenal, 1, NULL);
+        nn.momentum2(learn , CNNData(), 1800, 0, 0, 1E-1, 1, 1E-14, 0.9, CTVFlt(), bigPenal, 1, NULL);
         nncftyp er2 = nn.error(learn,bigPenal);
         stdOut << "momentum2;  loop=" << loop;
         stdOut << " learn error=" << nn.error( learn , bigPenal );
         stdOut << " test=" << classify( test ,nn ) << "%";
-        stdOut << " time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << " time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
         if( er1 - er2 < 1E-5 ) {
             break;
@@ -571,41 +571,41 @@ void experiment3( const bool reLearn ) {
 //3-7
 //subLearn.size=80000 nn.sizeWeights=39 learn error=0.321294 class test=63.765% class learn=63.8537% time=14818s
 void experimentA() {
-    QTextStream stdOut(stdout);    
-    const int learnSize = 80000;
+    QTextStream stdOut(stdout);
+    const int learnSize = 800;
     NNData learn, test;
     {
         FRnd rnd(1);
-        CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
+        CNNData data = NNData::mkData(false,0,6,0,5,1,"/home/m/tmp/test_data.csv",",");
         data.split( learn , learnSize, test, data.size()-learnSize, rnd() );
     }
 
 //  const unsigned long long rndSeed = 2634215374;
     const unsigned long long rndSeed = std::random_device()();
 
-    stdOut << "rndSeed=" << rndSeed << endl;
+    stdOut << "rndSeed=" << rndSeed << Qt::endl;
     FRnd rnd( rndSeed );
 
-    NNData subLearn = learn.rndSelect( 20000 , 1 );
+    NNData subLearn = learn.rndSelect( 50 , 1 );
 
     const time_t start = time(NULL);
     nnftyp bigPenal = 1E-12;
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
 
 //    nn.randWeights( rnd , -1.0 , +1.0 );
     nn.randIdxW( rnd );
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     nn.multiInit( subLearn , 1200 , 0 , 0.001 , 100, false, true, false, bigPenal, 1, 64 );
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     nn.forceIdx(subLearn,bigPenal,2*3600,0,true);
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     {
@@ -622,19 +622,19 @@ void experimentA() {
             if( nnTmp.error(subLearn) <= nn.error(subLearn) ) {
                 nn = nnTmp;
                 nn.save( "nndef_out.txt" );
-                stdOut << "Increase!!!" << endl;
+                stdOut << "Increase!!!" << Qt::endl;
             }
-            stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nnTmp.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nnTmp.error( subLearn , bigPenal ) << " class test=" << classify( test ,nnTmp ) << "% class learn=" << classify( subLearn ,nnTmp ) << "% time=" << (time(NULL)-start) << "s" << endl;
+            stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nnTmp.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nnTmp.error( subLearn , bigPenal ) << " class test=" << classify( test ,nnTmp ) << "% class learn=" << classify( subLearn ,nnTmp ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         }
     }
 
     for( int loop=1 ; true ; loop++ ) {
-        nn.learnRand1( subLearn, bigPenal, 1800 , 1E4 , 1E-5, 0.0005 , 0.01 , rnd(), true, true, false );
-        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.learnRand1( subLearn, bigPenal, 1800 , 0 , 1E4 , 1E-5, 0.0005 , 0.01 , rnd(), true, true, false );
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
 
-        nn.momentum2( subLearn , CNNData(), 1800 , 0, 0.001, 0.1, 1E-9, 0.8, CTVFlt(), bigPenal, 5, nullptr);
-        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.momentum2( subLearn , CNNData(), 1800, 0 , 0, 0.001, 0.1, 1E-9, 0.8, CTVFlt(), bigPenal, 5, nullptr);
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
         if( loop == 1 ) {
             nn.toUniqueWeights();
@@ -672,7 +672,7 @@ void experimentB() {
 //  const unsigned long long rndSeed = 2634215374;
     const unsigned long long rndSeed = std::random_device()();
 
-    stdOut << "rndSeed=" << rndSeed << endl;
+    stdOut << "rndSeed=" << rndSeed << Qt::endl;
     FRnd rnd( rndSeed );
 
     NNData subLearn = learn;//.rndSelect( 10000 , 1 );
@@ -682,32 +682,32 @@ void experimentB() {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     nn.randIdxW(rnd);
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     for( int loop=0 ; loop<3 ; loop++ ) {
         nn.forceIdx(subLearn,bigPenal, 3600, 1 , true);
-        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( subLearn, bigPenal, 1200 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
-        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.learnRand1( subLearn, bigPenal, 1200 , 0 , 1E4 , 1E-9, 0.0001 , 0.001 , rnd(), true, false, false );
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
     nn.toUniqueWeights();
 
     for( int loop=1 ; true ; loop++ ) {
-        nn.momentum2( subLearn , CNNData(), 1200 , 0, 0.01, 0.1, 1E-9, 0.95, CTVFlt(), bigPenal, 3, nullptr);
-        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.momentum2( subLearn , CNNData(), 1200, 0 , 0, 0.01, 0.1, 1E-9, 0.95, CTVFlt(), bigPenal, 3, nullptr);
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( subLearn, bigPenal, 1200 , 1E4 , 1E-9, 0.0001 , 0.03 , rnd(), true, false, false );
-        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.learnRand1( subLearn, bigPenal, 1200 , 0 , 1E4 , 1E-9, 0.0001 , 0.03 , rnd(), true, false, false );
+        stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
@@ -727,7 +727,7 @@ void experimentC() {
 //  const unsigned long long rndSeed = 3778521842;
     const unsigned long long rndSeed = std::random_device()();
 
-    stdOut << "rndSeed=" << rndSeed << endl;
+    stdOut << "rndSeed=" << rndSeed << Qt::endl;
     FRnd rnd( rndSeed );
 
     NNData subLearn = learn;//.rndSelect( 10000 , 1 );
@@ -737,33 +737,178 @@ void experimentC() {
 
     NNNet nn;
     nn.read("nndef.txt" );
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     nn.randIdxW(rnd);
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     nn.toUniqueWeights();
     nn.randWeights(rnd,-0.1,+0.1);
-    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
     nn.save( "nndef_out.txt" );
 
     for( int loop=1 ; true ; loop++ ) {
-        nn.momentum2( subLearn , CNNData(), 1800 , 0, 0.05, 1, 1E-9, 0.9, CTVFlt(), bigPenal, 3, nullptr);
-        stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.momentum2( subLearn , CNNData(), 1800, 0 , 0, 0.05, 1, 1E-9, 0.9, CTVFlt(), bigPenal, 3, nullptr);
+        stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
 
-        nn.learnRand1( subLearn, bigPenal, 300 , 1E4 , 1E-9, 0.0001 , 0.01*loop , rnd(), true, false, false );
-        stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+        nn.learnRand1( subLearn, bigPenal, 300 , 0 , 1E4 , 1E-9, 0.0001 , 0.01*loop , rnd(), true, false, false );
+        stdOut << "loop=" << loop << "] subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " nn.sizeNeurons=" << nn.sizeNeurons() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << Qt::endl;
         nn.save( "nndef_out.txt" );
     }
 
 }
 
 
+void experimentX() {
+    QTextStream stdOut(stdout);
+    const int learnSize = 200000;
+    NNData learn, test;
+    {
+        FRnd rnd(1);
+        //CNNData data = NNData::mkData(false,0,3,0,2,1,"/home/m/tmp/tree_reg_test.csv",",");
+        CNNData data = NNData::mkData(false,0,57,0,56,1,"/home/m/.local/share/SoftwareMariuszMarszalkowski/MxDotsAndBoxes/input_tree_22_6x6.tail.5pp",",");
+        stdOut << "data.size == " << data.size() << Qt::endl;
+        data.split( learn , learnSize, test, data.size()-learnSize, rnd() );
+
+    }
+
+    //  const unsigned long long rndSeed = 1171629261;
+    const unsigned long long rndSeed = 1;//std::random_device()();
+
+    stdOut << "rndSeed=" << rndSeed << Qt::endl;
+    FRnd rnd( rndSeed );
+
+    const time_t start = time(NULL);
+    nnftyp bigPenal = 1E-99;
+
+    NNNet nn;
+    nn.read("nndef2.txt" );
+
+
+    stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+
+    nn.rndWeightsHe( rnd , 0, 455, 57 );
+    nn.rndWeightsHe( rnd , 456, 536, 9 );
+    stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+
+    if( false )
+    {
+        NNData learn2,test2;
+        learn.split(learn2,200,test2,200, rnd() );
+        stdOut << "test2 error:" << nn.error( test2 , bigPenal ) << "; learn2 error:" << nn.error( learn2 , bigPenal ) << Qt::endl;
+        nn.learnRandWeights( learn2, test2, 10, 0, 0, bigPenal, 0.0001 , 0.01 , rnd(), 0.40 );
+        stdOut << "test2 error:" << nn.error( test2 , bigPenal ) << "; learn2 error:" << nn.error( learn2 , bigPenal ) << Qt::endl;
+        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+    }
+
+    if( false )
+    {
+        nn.momentum2( learn , CNNData(), 120, 0, 0, 0.5, 10, 1E-12, 0.50, CTVFlt(), bigPenal, 3, nullptr);
+        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+    }
+
+    if( true )
+    {
+        // NNData learn2 = learn.rndSelect(100,rnd());
+        // nn.learnRand1( learn2, 1E-2, 10, 0 , 0, 1E-20, 0.0001 , 0.01 , rnd(), true, false, false );
+        NNNet bestTest;
+        nn.batchGrDescent( learn, test, 32, 240, 0, 0.1, 0.0000001, 0.9, 0.98, 0.00000001, 5, 4, bigPenal, CTVFlt(), rnd(), &bestTest );
+        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+        stdOut << bestTest.weightsToString() << Qt::endl;
+        stdOut << nn.weightsToString() << Qt::endl;
+        {
+            nncityp tIdx = rnd() % test.size();
+            for( nnityp i=0 ; i<test[tIdx].sizeInp() ; i++ ) {
+                stdOut << test[tIdx].getInp(i) << ",";
+            }
+            stdOut << Qt::endl;
+            stdOut << " --> " << QString::number(bestTest.compute( test[tIdx].getInps() )[0] , 'f', 12 ) << Qt::endl;
+        }
+
+    }
+
+
+
+    // nnftyp testError = nn.error( test , bigPenal );
+    // NNData learn2 = learn.rndSelect(1000,rnd());
+    // while( true ) {
+    //     nn.learnRand1( learn2, bigPenal, learn2.size()/1000, 0 , 0, 1E-20, 0.001 , 0.001 , rnd(), true, true, false );
+    //     nn.momentum2( learn2 , CNNData(), std::max<int>( 1 , learn2.size()/10000 ), 0, 0, 0.0001, 0.01, 1E-12, 0.50, CTVFlt(), bigPenal, 3, nullptr);
+    //     const double tmp = nn.error( test , bigPenal );
+    //     if( tmp < testError ) {
+    //         nn.save( "nndef_out.txt" );
+    //         testError = tmp;
+    //         stdOut << nn.weightsToString() << Qt::endl;
+    //     } else {
+    //         nnityp size = learn2.size() + 1000;
+    //         if( size > learn.size() ) {
+    //             size = learn.size();
+    //         }
+    //         if( size > learn2.size() ) {
+    //             learn2 = learn.rndSelect(size,rnd());
+    //         }
+    //     }
+    //     stdOut << "----------------------------------------------------\n";
+    //     stdOut << "learn2.size() == " << learn2.size() << Qt::endl;
+    //     stdOut << "test error:" << tmp << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+    //     stdOut << "----------------------------------------------------\n";
+    // }
+
+
+
+
+    // for( int i=0 ; i<50 ; i++ ) {
+    //     NNData subLearn = learn.rndSelect( 100+i*50 , rnd() );
+    //     NNData learn2,test2;
+    //     subLearn.split(learn2,subLearn.size()/4*2,test2,subLearn.size()/4*2 , rnd() );
+    //     nn.learnRandWeights( learn2, test2, 1+subLearn.size()/200, 0, 0, bigPenal, 0.0001 , 0.02 , rnd(), 0.40 );
+    //     stdOut << "learn.size=" << learn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( learn , bigPenal ) << " test error=" << nn.error( test , bigPenal ) << "% time=" << (time(NULL)-start) << "s"<< Qt::endl;
+    // }
+    // nn.learnRandWeights( learn, test, 3600, 0, 0, bigPenal, 0.00001 , 0.01 , rnd(), 0.40 );
+    // stdOut << "learn.size=" << learn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( learn , bigPenal ) << " test error=" << nn.error( test , bigPenal ) << "% time=" << (time(NULL)-start) << "s"<< Qt::endl;
+
+
+
+//    nn.annealing(learn,bigPenal,180,0.0001,0.001,0.4,rnd());
+//    stdOut << "learn.size=" << learn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( learn , bigPenal ) << " test error=" << nn.error( test , bigPenal ) << "% time=" << (time(NULL)-start) << "s"<< Qt::endl;
+//    nn.save( "nndef_out.txt" );
+
+
+    // for( int i=0 ; i<0 ; i++ ) {
+    //     NNData subLearn = learn.rndSelect( i*30+100,rnd());
+    //     nn.momentum2( subLearn , CNNData(), 1 , 25,  0, 0.01, 0.1, 1E-7, 0.4, CTVFlt(), bigPenal, 5, nullptr);
+    //     stdOut << "learn.size=" << learn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( learn , bigPenal ) << " test error=" << nn.error( test , bigPenal ) << "% time=" << (time(NULL)-start) << "s"<< Qt::endl;
+    // }
+    // nn.momentum2( learn , CNNData(), 600 , 0 , 0, 0.0005, 0.5, 1E-7, 0.9, CTVFlt(), bigPenal, 5, nullptr);
+    // stdOut << "learn.size=" << learn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( learn , bigPenal ) << " test error=" << nn.error( test , bigPenal ) << "% time=" << (time(NULL)-start) << "s"<< Qt::endl;
+
+
+    //nn.save( "nndef_out.txt" );
+
+
+
+    //    nn.learnRand1( subLearn, bigPenal, 3600 , 0, 1E-12, 0.0001 , 0.001 , rnd(), true, true, false );
+    //    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    //    nn.save( "nndef_out.txt" );
+
+
+    //    nn.momentum2( subLearn , CNNData(), 1800, 0, 0.001, 0.1, 1E-9, 0.8, CTVFlt(), bigPenal, 3, nullptr);
+    //    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
+    //    nn.save( "nndef_out.txt" );
+
+    //    nn.toUniqueWeights();
+
+
+
+}
+
+
+
 int main(int argc, char *argv[])
 {
-    experimentA();
+    experimentX();
     return 0;
 }

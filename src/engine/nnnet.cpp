@@ -3,7 +3,7 @@
 #include <omp.h>
 #include <QFile>
 #include <QTextStream>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <cmath>
 #include <QtDebug>
 #include "nnnet.h"
@@ -47,7 +47,8 @@ static nnftyp factivate( nncftyp inp, NNActv actv ) {
         case NNA_SUNI:  return 1.0 / ( 1.0 + exp(-inp) );
         case NNA_SBIP:  return 2.0 / ( 1.0 + exp(-inp) ) - 1.0;
         case NNA_SBIP_L:return 2.0 / ( 1.0 + exp(-inp) ) - 1.0 + inp * 1E-6;
-        case NNA_RELU:  return log( 1.0 + exp(inp) );
+        case NNA_RELU:  return std::max( 0.0 , 1.0 * inp  );
+        case NNA_LRELU:  return (inp < 0 ? 0.01 : 1.0) * inp;
         case NNA_NNAME: return inp / ( 1.0 + fabs(inp) );
     }
     return 0;
@@ -62,7 +63,8 @@ static nnftyp fderivate( nncftyp out, NNActv actv ) {
         case NNA_SUNI:   return out * (1.0 - out);
         case NNA_SBIP:   return 0.5 * (1.0 - out*out);
         case NNA_SBIP_L: return 0.5 * (1.0 - out*out) + 1E-6;
-        case NNA_RELU:   return 1.0 / ( exp(-out) + 1 );
+        case NNA_RELU:   return out != 0 ? 1.0 : 0.0;
+        case NNA_LRELU:   return out < 0 ? 0.01 : 1.0;
         case NNA_NNAME:  tmp = out < 0 ? out/(1.0+out) : -(out/(out-1.0)); tmp = fabs(tmp)+1.0; tmp *= tmp; return 1.0 / tmp;
     }
     return 0;
@@ -361,7 +363,7 @@ void NNNet::grDescent( CNNData &data , nncityp loops , nncftyp step , CTVFlt &to
     nnftyp ng = 0;
     nnityp loop = 0;
     bool work = true;
-    stdo << "    loop] " << "     error       step        ||gr||   ||weights||" << endl;
+    stdo << "    loop] " << "     error       step        ||gr||   ||weights||" << Qt::endl;
     while( work ) {
         CTVFlt copy = weights;
         rawDescent( data , subloops , step , tolearn );
@@ -380,13 +382,16 @@ void NNNet::grDescent( CNNData &data , nncityp loops , nncftyp step , CTVFlt &to
         }
         ng = avgNorm( gradient(data) );
         if( loop % show == 0 ) {
-            stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er2 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << endl;
+            stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er2 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << Qt::endl;
         }
         loop ++ ;
         work = subloops==1 || (subloops>0 && loop < loops);
     }
-    stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << endl;
+    stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << Qt::endl;
 }
+
+
+
 
 //void NNNet::rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn) {
 //    for( nnityp loop = 0 ; loop < loops ; loop++ ) {
@@ -435,7 +440,7 @@ void NNNet::momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom,
     nnityp fails = 0;
     nnityp loop=0;
     bool work = true;
-    stdo << "    loop]      error       step  ||gradient||   ||weights||         ||p||  fails" << endl;
+    stdo << "    loop]      error       step  ||gradient||   ||weights||         ||p||  fails" << Qt::endl;
     while( work ) {
         CTVFlt copy = weights;
         rawMomentum( data , subloops , step , p , mom , bigpenal , tolearn );
@@ -455,19 +460,19 @@ void NNNet::momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom,
         }
         ng = avgNorm( gradient(data) );
         if( loop % show == 0 ) {
-            stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << fnorm(p)  << qSetFieldWidth(0) << " " << qSetFieldWidth(6) << fails << endl;
+            stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << fnorm(p)  << qSetFieldWidth(0) << " " << qSetFieldWidth(6) << fails << Qt::endl;
         }
         loop ++ ;
         work = loop < loops && fails < 4;
     }
-    stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << fnorm(p)  << qSetFieldWidth(0) << " " << qSetFieldWidth(6) << fails << endl;
+    stdo << qSetFieldWidth(8) << loop << qSetFieldWidth(0) << "] " << er1 << " " << step << " " << qSetFieldWidth(13) << ng << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << avgNorm(weights) << qSetFieldWidth(0) << " " << qSetFieldWidth(13) << fnorm(p)  << qSetFieldWidth(0) << " " << qSetFieldWidth(6) << fails << Qt::endl;
 }
-
 
 void NNNet::momentum2(
     CNNData &learn ,         //MM: Data to learn.
     CNNData &test ,          //MM: Data to test.
     const time_t maxTime ,
+    nncityp maxLoops,
     nncityp maxFailsTest,
     nnftyp step,
     nncftyp maxStep,
@@ -494,7 +499,7 @@ void NNNet::momentum2(
         stdOut << "        test";
         stdOut << "   best_test";
     }
-    stdOut<< "           step   ||gradient||   ||weights||         ||p||  fails     time" << endl;
+    stdOut<< "           step   ||gradient||   ||weights||         ||p||  fails     time" << Qt::endl;
     nnityp loop = 0;
     const time_t start = time(NULL);
     time_t currTime = start;
@@ -508,6 +513,8 @@ void NNNet::momentum2(
         step >= minStep
             &&
         (maxFailsTest==0 || failsTest < maxFailsTest)
+            &&
+        (maxLoops==0 || loop < maxLoops)
     ) {
         loop++;
         currTime = time(NULL);
@@ -578,7 +585,7 @@ void NNNet::momentum2(
             stdOut << qSetFieldWidth(0) << " ";
             stdOut << qSetFieldWidth(7) << (currTime-start);
             stdOut << qSetFieldWidth(0) << "s";
-            stdOut << endl;
+            stdOut << Qt::endl;
 
             lastShow = currTime;
 
@@ -655,7 +662,7 @@ void NNNet::learnRand3(
         stdOut << "        test";
         stdOut << "  best_error";
     }
-    stdOut<< " ||steps||   ||weights||  fails     time" << endl;
+    stdOut<< " ||steps||   ||weights||  fails     time" << Qt::endl;
     nnityp loop = 0;
     const time_t start = time(NULL);
     time_t currTime = start;
@@ -727,7 +734,7 @@ void NNNet::learnRand3(
                 stdOut << qSetFieldWidth(0) << " ";
                 stdOut << qSetFieldWidth(7) << (currTime-start);
                 stdOut << qSetFieldWidth(0) << "s";
-                stdOut << endl;
+                stdOut << Qt::endl;
 
                 lastShow = currTime;
                 if( currTime - start >= 2000 ) {
@@ -836,13 +843,13 @@ void NNNet::multiInit(
         if( show ) {
             const time_t currTime = time(NULL);
             if( currTime - lastShow >= showTime ) {
-                stdOut << "loop=" << loop << " time=" << (time(nullptr) - start) << "s value=" << value << endl;
+                stdOut << "loop=" << loop << " time=" << (time(nullptr) - start) << "s value=" << value << Qt::endl;
                 const bool fullShow = false;
                 if( fullShow ) {
                     for( int i=0 ; i<bestRanges.size() ; i++ ) {
-                        stdOut << i << "] " << bestRanges[i].value << " " << bestRanges[i].range << " " << bestRanges[i].use << endl;
+                        stdOut << i << "] " << bestRanges[i].value << " " << bestRanges[i].range << " " << bestRanges[i].use << Qt::endl;
                     }
-                    stdOut << "---------------------------------------" << endl;
+                    stdOut << "---------------------------------------" << Qt::endl;
                 }
                 if( currTime - start > 7200 ) {
                     showTime = 120;
@@ -934,7 +941,7 @@ void NNNet::bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step ) {
         pg = g;
         g = subGradient( data, sub );
         ng = fnorm( g );
-        stdo << loop << " " << er1 << " " << ng << " " << reset << " " << fail << endl;
+        stdo << loop << " " << er1 << " " << ng << " " << reset << " " << fail << Qt::endl;
 
         if( fail >= 6 )
             break;
@@ -1038,6 +1045,19 @@ void NNNet::randIdxW(FRnd &rnd, nncftyp min, nncftyp max, nncityp maxTry) {
     }
 }
 
+void NNNet::rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize ) {
+    std::normal_distribution<nnftyp> d( 0.0 ,  std::sqrt( 2.0 / inpSize ) );
+    for( nnityp i=start ; i<=end ; i++ ) {
+        weights[i] = d(rnd);
+        if( weights[i] < min_w[i] ) {
+            weights[i] = min_w[i];
+        }
+        if( weights[i] > max_w[i] ) {
+            weights[i] = max_w[i];
+        }
+    }
+}
+
 void NNNet::randWeights( FRnd &rnd , nncftyp min , nncftyp max ) {
     for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
         if( max-min > 0.000001 ) {
@@ -1074,7 +1094,7 @@ int NNNet::doubleRndIdxWeightForce(
     time_t showTime = 0;
     nnftyp er = error(data);
 
-    stdOut << "    loop ]           error   callEval   sumIncrease    time " << endl;
+    stdOut << "    loop ]           error   callEval   sumIncrease    time " << Qt::endl;
     for( nnityp loop=1 ; (maxNotIncrese <= 0 ||  notIncrese < maxNotIncrese ) && (maxLoops <= 0 || loop <= maxLoops) && (maxTime <= 0 || time(NULL)-start < maxTime); loop++ ) {
         nnityp neuronI,neuronJ,idxWeightI,idxWeightJ;
         do {
@@ -1112,7 +1132,7 @@ int NNNet::doubleRndIdxWeightForce(
                         stdOut << qSetFieldWidth(13) << sumIncrease;
                         stdOut << qSetFieldWidth(0)  << " ";
                         stdOut << qSetFieldWidth(7)  << (currTime-start);
-                        stdOut << qSetFieldWidth(0)  << "s" << endl;
+                        stdOut << qSetFieldWidth(0)  << "s" << Qt::endl;
                         if( currTime - start > 7200 ) {
                             showTime = 120;
                         } else if( currTime - start > 3600 ) {
@@ -1168,7 +1188,7 @@ int NNNet::forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, con
                         er = tmp;
                         best = k;
                         if( show ) {
-                            stdo << loop << "] " << i << " " << j << " " << k << " " << er << endl;
+                            stdo << loop << "] " << i << " " << j << " " << k << " " << er << Qt::endl;
                         }
                     }
                 }
@@ -1224,7 +1244,7 @@ int NNNet::forceIdx2(
                             best_i = l;
                             best_w = k;
                             if( show ) {
-                                stdo << loop << "] " << i << " " << j << " " << k << " " << er << endl;
+                                stdo << loop << "] " << i << " " << j << " " << k << " " << er << Qt::endl;
                             }
                         }
                     }
@@ -1260,7 +1280,7 @@ int NNNet::forcePairIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const 
 
         while( idxp.size() >= 2 ) {
             if( show ) {
-                stdo << "loop=" << loop << " " << idxp.size() << endl;
+                stdo << "loop=" << loop << " " << idxp.size() << Qt::endl;
             }
             nnityp *p1 = idxp.takeAt( rnd() % idxp.size() );
             nnityp *p2 = idxp.takeAt( rnd() % idxp.size() );
@@ -1278,7 +1298,7 @@ int NNNet::forcePairIdx( CNNData &data , nncftyp bigPenal, nncityp loops, const 
                         b1 = *p1;
                         b2 = *p2;
                         if( show ) {
-                            stdo << loop << "] " << i << " " << j << " " << er << endl;
+                            stdo << loop << "] " << i << " " << j << " " << er << Qt::endl;
                         }
                     }
                 }
@@ -1387,7 +1407,7 @@ int NNNet::subForceIdx(
                     stdOut << qSetFieldWidth(0) << " ";
                     stdOut << qSetFieldWidth(0) << (currTime-start);
                     stdOut << qSetFieldWidth(0) << "s";
-                    stdOut << endl;
+                    stdOut << Qt::endl;
                 }
             }
         }
@@ -1499,7 +1519,7 @@ void NNNet::learnRndIdx(
                 stdOut << qSetFieldWidth(6)  << (currTime-lastLearn);
                 stdOut << qSetFieldWidth(0)  << "s ";
                 stdOut << qSetFieldWidth(6)  << (currTime-start);
-                stdOut << qSetFieldWidth(0)  << "s" << endl;
+                stdOut << qSetFieldWidth(0)  << "s" << Qt::endl;
 
                 lastShow = currTime;
                 if( currTime - start > 7200 ) {
@@ -1541,6 +1561,7 @@ void NNNet::learnRand1(
     CNNData &data ,
     nncftyp bigPenal,
     nncityp maxTime ,
+    nncityp maxLoop ,
     nncityp maxnoti,
     nncftyp mindesc,
     nncftyp min_str,
@@ -1563,7 +1584,7 @@ void NNNet::learnRand1(
     time_t currTime = start;
     time_t lastShow = currTime;
     time_t showTime = 1;
-    for( nnityp loop=1 ; currTime - start <= maxTime && (maxnoti==0 || noti < maxnoti) ; loop++ ) {
+    for( nnityp loop=1 ; currTime - start <= maxTime && (maxnoti==0 || noti < maxnoti) && (maxLoop==0 || loop<maxLoop); loop++ ) {
         chaos( rnd , strenght , weights, idx_weights, idx_input );
         nncftyp tmp = error( data , bigPenal  );
         if( tmp <= er ) {
@@ -1594,7 +1615,7 @@ void NNNet::learnRand1(
             stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(10) << strenght;
             stdo << qSetFieldWidth(0)  << " " << qSetFieldWidth(0) << (currTime-start);
             stdo << qSetFieldWidth(0)  << "s";
-            stdo << endl;
+            stdo << Qt::endl;
 
             lastShow = currTime;
             nnityp ds = 0;
@@ -1658,7 +1679,7 @@ void NNNet::annealing(
     nnftyp strenght = maxStrength;
     nnftyp decay = pow( minStrength / maxStrength , 1.0 / maxTime );
 
-    stdOut << "      loop   strength    best_error    curr_error    time" << endl;
+    stdOut << "      loop   strength    best_error    curr_error    time" << Qt::endl;
 
     for( nnityp loop=1 ; (currTime-start) <= maxTime ; loop++ ) {
 
@@ -1693,7 +1714,7 @@ void NNNet::annealing(
             stdOut << qSetFieldWidth(0)  << " ";
             stdOut << qSetFieldWidth(6)  << (currTime-start);
             stdOut << qSetFieldWidth(0)  << "s";
-            stdOut << endl;
+            stdOut << Qt::endl;
 
             lastShow = currTime;
             if( currTime - start > 7200 ) {
@@ -1715,6 +1736,70 @@ void NNNet::annealing(
 
     }
     weights = bestWeights;
+}
+
+
+void NNNet::learnRandWeights(
+    CNNData &data,
+    CNNData &test,
+    nncityp maxTime ,
+    nncityp maxLoop,
+    nncityp maxNotI,
+    nncftyp bigPenal,
+    nncftyp minStrength,
+    nncftyp maxStrength,
+    nncityp seed,
+    nncftyp pBack
+) {
+    QTextStream stdo(stdout);
+    stdo.setRealNumberPrecision(8);
+    stdo.setRealNumberNotation(QTextStream::FixedNotation);
+
+    nnftyp strenght = maxStrength;
+    nncftyp decay = pow( minStrength / maxStrength , 1.0 / maxTime );
+    nnityp noti = 0;
+    const time_t start = time(NULL);
+    time_t currTime = start;
+
+    FRnd rnd(seed);
+    nnftyp er  = error( data , bigPenal );
+    nnftyp erT = error( test , bigPenal );
+
+    TVFlt bestWeights = weights;
+    TVFlt bestTest    = weights;
+
+    for(
+        nnityp loop=1 ;
+        currTime - start <= maxTime
+        && (maxNotI==0 || noti < maxNotI)
+        && (maxLoop==0 || loop<maxLoop)
+        ; loop++
+    ) {
+        chaos( rnd , strenght , true, false, false );
+        nnftyp tmp = error( data , bigPenal  );
+        if( tmp <= er ) {
+            bestWeights = weights;
+            tmp = error( test , bigPenal  );
+            if( tmp < erT ) {
+                erT = tmp;
+                bestTest = weights;
+                noti = 0;
+            }
+        } else if( rnd.getF() < pBack ) {
+            weights = bestWeights;
+        }
+        noti++;
+
+        if( (loop & 0x1) == 0 ) {
+            const time_t tmp = time(NULL);
+            while( currTime < tmp ) {
+                strenght *= decay;
+                currTime++;
+            }
+        }
+    }
+
+    weights = bestTest;
 }
 
 
@@ -1842,7 +1927,7 @@ void NNNet::mkNewData( const QString& path, CNNData &data ) const {
                 fstr << ",";
             fstr << data[i].getOut(j);
         }
-        fstr << endl;
+        fstr << Qt::endl;
     }
     file.close();
 }
@@ -1868,10 +1953,11 @@ static QString nextLine( QTextStream &inp ) {
 // Wykonuje asercje, sprawdza czy ilość intów mieści się w
 // przedziale od min do max.
 static TVInt getInts( const QString &label, const QString& line, nncityp min=-1, nncityp max=-1) {
-    QRegExp rex( QString("^\\s*%1\\s*:\\s*([0-9\\+\\-\\,\\s]+)$").arg( QRegExp::escape(label) ) );
-    rex.indexIn(line);
+    QRegularExpression rex( QString("^\\s*%1\\s*:\\s*([0-9\\+\\-\\,\\s]+)$").arg( QRegularExpression::escape(label) ) );
+    //rex.indexIn(line);
+    QRegularExpressionMatch matches = rex.match(line);
     PEXCP( rex.captureCount() == 1 );
-    const QStringList ints = rex.cap(1).split(QRegExp("[\\s,;]+"),QString::SkipEmptyParts);
+    const QStringList ints = matches.captured(1).split(QRegularExpression("[\\s,;]+"),Qt::SkipEmptyParts);
     if( !(min==-1 || ints.size()>=min) )
         qDebug() << line << min << max;
     PEXCP( min==-1 || ints.size()>=min);
@@ -1904,10 +1990,10 @@ static nnityp getInt( const QString &label, QTextStream &inp ) {
 
 
 static TVFlt getFloats( const QString &label, const QString& line, nncityp min=-1, nncityp max=-1) {
-    QRegExp rex( QString("^\\s*%1\\s*:\\s*([0-9\\.\\+\\-\\,\\sEe]*)$").arg( QRegExp::escape(label) ) );
-    rex.indexIn(line);
-    PEXCP( rex.captureCount() == 1 );
-    const QStringList floats = rex.cap(1).split( QRegExp("[\\s,;]+") , QString::SkipEmptyParts );
+    QRegularExpression rex( QString("^\\s*%1\\s*:\\s*([0-9\\.\\+\\-\\,\\sEe]*)$").arg( QRegularExpression::escape(label) ) );
+    QRegularExpressionMatch match = rex.match(line);
+    PEXCP( match.lastCapturedIndex() == 1 );
+    const QStringList floats = match.captured(1).split( QRegularExpression("[\\s,;]+") , Qt::SkipEmptyParts );
     PEXCP( min==-1 || floats.size()>=min);
     PEXCP( max==-1 || floats.size()<=max);
     TVFlt out;
@@ -1929,10 +2015,10 @@ static nnftyp getFlt( const QString &label, QTextStream &inp ) {
 
 //Zwraca napisy za etykietą.
 static TVStr getStrings( const QString &label, const QString& line, nncityp min=-1, nncityp max=-1) {
-    QRegExp rex( QString("^\\s*%1\\s*:\\s*(.*)$").arg( QRegExp::escape(label) ) );
-    rex.indexIn(line);
-    PEXCP( rex.captureCount() == 1 );
-    CTVStr strs = rex.cap(1).split( QRegExp("[\\s,;]+") , QString::SkipEmptyParts ).toVector();
+    QRegularExpression rex( QString("^\\s*%1\\s*:\\s*(.*)$").arg( QRegularExpression::escape(label) ) );
+    QRegularExpressionMatch match = rex.match(line);
+    PEXCP( match.lastCapturedIndex() == 1 );
+    CTVStr strs = match.captured(1).split( QRegularExpression("[\\s,;]+") , Qt::SkipEmptyParts ).toVector();
     PEXCP( min==-1 || strs.size()>=min );
     PEXCP( max==-1 || strs.size()<=max );
     return strs;
@@ -1944,7 +2030,7 @@ static QString getString( const QString &label, const QString& line ) {
 }
 
 // Lista funkcji aktywacji.
-const static QStringList strActvs{"lin", "mlin", "suni", "sbip", "sbip_l", "relu", "nname"};
+const static QStringList strActvs{"lin", "mlin", "suni", "sbip", "sbip_l", "relu", "lrelu", "nname"};
 
 // Zwraca funkcję aktywacji neuronu
 static NNActv getActv( QTextStream &finp ) {
@@ -1992,14 +2078,15 @@ void NNNet::read(const QString& path) {
     QString line;
 
     while( (line = nextLine(finp)) != "endweights" ) { // Wczytuj definicje wag aż do napotkania endWeight.
-        QRegExp rxp("^\\s*(weight_([0-9]+))");         // Regexp do wczytania etykiety waga_numer.
-        PEXCP( rxp.indexIn(line) == 0 );
-        PEXCP( rxp.captureCount() == 2 );
-        nncityp nr = rxp.cap(2).toUInt(&ok);           // Pobierz numer wagi.
+        QRegularExpression rxp("^\\s*(weight_([0-9]+))");         // Regexp do wczytania etykiety waga_numer.
+        QRegularExpressionMatch match = rxp.match(line);
+        PEXCP( line.indexOf( rxp ) == 0 );
+        PEXCP( match.lastCapturedIndex() == 2 );
+        nncityp nr = match.captured(2).toUInt(&ok);           // Pobierz numer wagi.
 
         PEXCP(ok);
         PEXCP( nr>=0 && nr < size_weights );
-        tmp_f = getFloats( rxp.cap(1) , line , 0 , 3 );
+        tmp_f = getFloats( match.captured(1) , line , 0 , 3 );
         if( tmp_f.size() >= 1 ) weights[nr] = tmp_f[0];
         if( tmp_f.size() >= 2 ) min_w[nr]   = tmp_f[1];
         if( tmp_f.size() >= 3 ) max_w[nr]   = tmp_f[2];
@@ -2092,45 +2179,45 @@ void NNNet::save(const QString& path) const {
     PEXCP( file.open(QFile::WriteOnly|QFile::Truncate) );
     QTextStream fout(&file);
 
-    fout.setCodec("utf-8");
+    //fout.setEncoding("utf-8");
     fout.setFieldWidth(8);
     fout.setRealNumberPrecision(15);
     fout.setRealNumberNotation(QTextStream::FixedNotation);
     fout.setFieldAlignment(QTextStream::AlignRight);
 
-    fout << "size_inputs:  "  << size_i         << QString::fromUtf8(" # rozmiar wejścia") << endl;
-    fout << "size_outputs: "  << size_o         << QString::fromUtf8(" # rozmiar wyjścia") << endl;
-    fout << "size_neurons: "  << neurons.size() << QString::fromUtf8(" # ilość neuronów")  << endl;
-    fout << "size_weights: "  << weights.size() << QString::fromUtf8(" # ilość wag")       << endl;
-    fout << "size_convols: "  << convs.size()   << QString::fromUtf8(" # ilość splotów")   << endl;
-    fout << endl;
+    fout << "size_inputs:  "  << size_i         << QString::fromUtf8(" # rozmiar wejścia") << Qt::endl;
+    fout << "size_outputs: "  << size_o         << QString::fromUtf8(" # rozmiar wyjścia") << Qt::endl;
+    fout << "size_neurons: "  << neurons.size() << QString::fromUtf8(" # ilość neuronów")  << Qt::endl;
+    fout << "size_weights: "  << weights.size() << QString::fromUtf8(" # ilość wag")       << Qt::endl;
+    fout << "size_convols: "  << convs.size()   << QString::fromUtf8(" # ilość splotów")   << Qt::endl;
+    fout << Qt::endl;
 
 
-    fout << "weights_penal: "  << forcesign << weights_penal << QString::fromUtf8(" # kara za duże wagi")    << endl;
-    fout << "signal_penal:  "  << forcesign << signal_penal  << QString::fromUtf8(" # kara za duże sygnały") << endl;
-    fout << endl;
+    fout << "weights_penal: "  << Qt::forcesign << weights_penal << QString::fromUtf8(" # kara za duże wagi")    << Qt::endl;
+    fout << "signal_penal:  "  << Qt::forcesign << signal_penal  << QString::fromUtf8(" # kara za duże sygnały") << Qt::endl;
+    fout << Qt::endl;
 
 
-    fout << "rnd_seed: "      << rnd_seed  << QString::fromUtf8(" # zarodek liczb losowych") << endl;
-    fout << endl;
+    fout << "rnd_seed: "      << rnd_seed  << QString::fromUtf8(" # zarodek liczb losowych") << Qt::endl;
+    fout << Qt::endl;
 
 
-    fout << qSetFieldWidth(0) << "weights: " << forcesign << qSetFieldWidth(20) << gmin_w  << qSetFieldWidth(0) << ", "  << qSetFieldWidth(20) << forcesign << gmax_w << QString::fromUtf8(" # wagi") << endl;
+    fout << qSetFieldWidth(0) << "weights: " << Qt::forcesign << qSetFieldWidth(20) << gmin_w  << qSetFieldWidth(0) << ", "  << qSetFieldWidth(20) << Qt::forcesign << gmax_w << QString::fromUtf8(" # wagi") << Qt::endl;
     for( nnityp i=0 ; i<weights.size() ; i++ ) {
-        fout << noforcesign << qSetFieldWidth(0);
+        fout << Qt::noforcesign << qSetFieldWidth(0);
         fout << "  weight_" << i << ": ";
-        fout << forcesign;
+        fout << Qt::forcesign;
         fout << qSetFieldWidth(20) << weights[i] << qSetFieldWidth(0) << ", ";
         fout << qSetFieldWidth(20) << min_w[i]   << qSetFieldWidth(0) << ", ";
         fout << qSetFieldWidth(20) << max_w[i]   << qSetFieldWidth(0) << ", ";
-        fout << "# waga nr " << noforcesign << (i+1) << endl;
+        fout << "# waga nr " << Qt::noforcesign << (i+1) << Qt::endl;
     }
-    fout << "endWeights" << endl << endl << endl;
+    fout << "endWeights" << Qt::endl << Qt::endl << Qt::endl;
 
     for( nnityp i=0 ; i<neurons.size() ; i++ ) {
-        fout << noforcesign << qSetFieldWidth(0) << "neuron:" << i << "      #neuron " << i << "; input: " << (i+size_i) << endl;
-        fout << "  actv: " <<  strActvs[ neurons[i].actv ] << endl;
-        fout << "  conv: " << neurons[i].conv << endl;
+        fout << Qt::noforcesign << qSetFieldWidth(0) << "neuron:" << i << "      #neuron " << i << "; input: " << (i+size_i) << Qt::endl;
+        fout << "  actv: " <<  strActvs[ neurons[i].actv ] << Qt::endl;
+        fout << "  conv: " << neurons[i].conv << Qt::endl;
 
         fout << "  inp: ";
         for( nnityp j=0 ; j<neurons[i].idx_i.size() ; j++ ) {
@@ -2138,9 +2225,9 @@ void NNNet::save(const QString& path) const {
                 fout << ", ";
             fout << neurons[i].idx_i[j];
         }
-        fout << endl;
+        fout << Qt::endl;
 
-        fout << "  rng_inputs: " << neurons[i].min_i << ", " << neurons[i].max_i << endl;
+        fout << "  rng_inputs: " << neurons[i].min_i << ", " << neurons[i].max_i << Qt::endl;
 
         fout << "  weights: ";
         for( nnityp j=0 ; j<neurons[i].idx_w.size() ; j++ ) {
@@ -2148,15 +2235,15 @@ void NNNet::save(const QString& path) const {
                 fout << ", ";
             fout << neurons[i].idx_w[j];
         }
-        fout << endl;
+        fout << Qt::endl;
 
-        fout << "  rng_weights: " << neurons[i].min_w << ", " << neurons[i].max_w << endl;
-        fout << "  rng_size: "    << neurons[i].min_s << ", " << neurons[i].max_s << endl;
+        fout << "  rng_weights: " << neurons[i].min_w << ", " << neurons[i].max_w << Qt::endl;
+        fout << "  rng_size: "    << neurons[i].min_s << ", " << neurons[i].max_s << Qt::endl;
 
-        fout << endl;
+        fout << Qt::endl;
     }
 
-    fout << "endNeurons" << endl;
+    fout << "endNeurons" << Qt::endl;
 
     file.close();
 }
@@ -2269,5 +2356,215 @@ bool NNNet::chaos(
     }
     return false;                                        // Nie udało się zaburzyć pomimo 1000 prób.
 }
+
+
+QString NNNet::weightsToString() const {
+    QString str;
+    for( nnityp i=0 ; i<sizeNeurons() ; i++ ) {
+        for( nnityp j=0 ; j<neurons[i].idx_w.size() ; j++ ) {
+            if( str.size() > 0 ) { str += ","; }
+            str += QString::number( weights[ neurons[i].idx_w[j] ] , 'f', 14 );
+        }
+    }
+    return str;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void NNNet::batchGrDescent(
+    CNNData &learn ,          //MM: Data to learn.
+    CNNData &test ,           //MM: Data to test.
+    nncityp batchSize,
+    const time_t maxTime ,
+    nncityp maxLoops,
+    nnftyp  maxStep,
+    nncftyp minStep,
+    nncftyp mom,
+    nncftyp mom2,
+    nncftyp epsilon,
+    cultyp checkFrequency,
+    cutyp resetFrequency,
+    nncftyp bigPenal,
+    CTVFlt &toLearn,
+    cultyp rndSeed,
+    NNNet *const bestTest
+) {
+    TVFlt m( sizeWeights() , 0 );
+    TVFlt v( sizeWeights() , 0 );
+    TVFlt d( sizeWeights() , 0 );
+
+    QTextStream stdOut(stdout);
+    stdOut.setRealNumberPrecision(6);
+    stdOut.setRealNumberNotation( QTextStream::FixedNotation );
+
+    nnftyp step = maxStep;
+
+    nnftyp learnError = error( learn , bigPenal );
+    nnftyp testError  = 0;
+    nnftyp currLearnError = 0;
+    nnftyp currTestError  = 0;
+
+    if( test.size() > 0 ) {
+        testError = error( test , bigPenal );
+    }
+    nnityp learnFails = 0, learnSuccess = 0,  testFails = 0, testSuccess = 0;
+    nnityp failsSerie = 0;
+    TVFlt bestWeights = weights;
+
+    nnityp loop = 0;
+    const time_t start = time(NULL);
+    time_t currTime = start;
+    time_t lastShow = start;
+    time_t nextShow = 0;
+
+    TVInt shuff( learn.size() );
+    for( nnityp i=0 ; i<learn.size() ; i++ ) {
+        shuff[i] = i;
+    }
+
+    FRnd rnd(rndSeed);
+    nncityp batchNo = (nnityp)std::round( (double)learn.size() / batchSize ) ;
+
+
+    const auto showHead = [&stdOut] {
+        stdOut << qSetFieldWidth(10) << "loop | ";
+        stdOut << Qt::endl;
+    };
+
+    const auto isShowRaport = [&] {
+        if( currTime > lastShow + nextShow ) {
+            return true;
+        }
+        return false;
+    };
+
+    const auto raport = [&] {
+        stdOut << qSetFieldWidth(8) << loop;
+        stdOut << qSetFieldWidth(0) << "] ";
+        stdOut << "(" << learnError << "," << currLearnError << ") ";
+        stdOut << learnSuccess << " " << learnFails << " ";
+        if( test.size() > 0 ) {
+            stdOut << "(" << testError << "," << currTestError << ") ";
+            stdOut << testSuccess << " " << testFails << " ";
+        }
+        stdOut << step << " ";
+        stdOut << (currTime-start) << "s";
+        stdOut << Qt::endl;
+
+        nextShow = (currTime - lastShow) * 2;
+        if( nextShow > 10 ) {
+            nextShow = 10;
+        }
+        lastShow = currTime;
+    };
+
+    while( ( maxLoops>0 && loop<maxLoops) || (maxLoops==0 && currTime-start <= maxTime ) ) {
+        loop++;
+        currTime = time(NULL);
+
+        {
+            std::shuffle( shuff.begin(), shuff.end(), rnd );
+            NNData batch;
+            for( nnityp i=0 ; i<batchNo ; i++ ) {
+                batch.clear();
+                nncityp start = learn.size() * i     / batchNo;
+                nncityp end   = learn.size() * (i+1) / batchNo;
+                for( nnityp i=start ; i<end ; i++ ) {
+                    batch.emplace_back( learn[ shuff[i] ] );
+                }
+
+                TVFlt g = gradient(batch,bigPenal);
+                makeToLearn( g , toLearn );
+                for( nnityp i=0 ; i<m.size() ; i++ ) {
+                    m[i] = m[i] * mom  + g[i] * (1.0-mom);
+                    v[i] = v[i] * mom2 + g[i] * g[i] * (1.0-mom2);
+                }
+                for( nnityp i=0 ; i<m.size() ; i++ ) {
+                    d[i] = m[i] / ( std::sqrt( v[i] ) + epsilon );
+                }
+                mkNorm( d );
+
+                for( nnityp i=0 ; i<g.size() ; i++ ) {
+                    weights[i] -= d[i] * step;
+                    if( weights[i] > max_w[i] ) weights[i] = max_w[i];
+                    if( weights[i] < min_w[i] ) weights[i] = min_w[i];
+                }
+            }
+        }
+
+
+        if( loop % checkFrequency == 0 ) {
+            currLearnError = error( learn , bigPenal );
+
+            if( currLearnError <= learnError ) {
+                if( currLearnError < learnError ) {
+                    failsSerie = 0;
+                    learnSuccess ++;
+                    learnError = currLearnError;
+                    bestWeights = weights;
+                    step *= 1.20;
+                    if( step > maxStep ) {
+                        step = maxStep;
+                    }
+                }
+                if( test.size() > 0 ) {
+                    currTestError = error( test , bigPenal );
+                    if( currTestError < testError ) {
+                        testError = currTestError;
+                        testSuccess ++;
+                        if( bestTest != nullptr ) {
+                            *bestTest = *this;
+                        }
+                    } else {
+                        testFails  ++ ;
+                    }
+                }
+            } else {
+                learnFails ++ ;
+                failsSerie ++ ;
+                if( failsSerie >= resetFrequency ) {
+                    weights = bestWeights;
+                    for( nnityp i=0 ; i<m.size() ; i++ ) {
+                        m[i] = v[i] = 0;
+                    }
+                    failsSerie = 0;
+                    step *= 0.5;
+                    if( step < minStep ) {
+                        step = minStep;
+                    }
+                }
+            }
+
+        }
+
+        if( isShowRaport() ) {
+            raport();
+        }
+
+
+    }
+    raport();
+    weights = bestWeights;
+
+}
+
+
+
+
+
+
+
 
 }

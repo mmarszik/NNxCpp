@@ -18,8 +18,10 @@ enum NNActv {
     NNA_SUNI,   // Sigmoidalna unipolarna
     NNA_SBIP,   // Sigmoidalna bipolarna
     NNA_SBIP_L, // Sigmoidalna bipolarna + liniowa
-    NNA_RELU,   // Softmax
-    NNA_NNAME   // No-name
+    NNA_RELU,   // Relu
+    NNA_LRELU,   // LRelu
+    NNA_NNAME,   // No-name
+    //NNA_RELU
 };
 
 // Wektor neuronów.
@@ -106,8 +108,9 @@ public:
     void rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn);
     void momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom, CTVFlt &tolearn, nncftyp min_error, nncftyp bigpenal, nnityp subloops , nnityp show=1);
     void bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step );
-    void learnRand1(CNNData &data , nncftyp bigPenal, nncityp maxTime , nncityp maxnoti, nncftyp mindesc,  nncftyp min_str, nncftyp max_str, nncityp seed, const bool weights, const bool idx_weights, const bool idx_input );
-    void learnRand2(NNData  &data,
+    void learnRand1(CNNData &data , nncftyp bigPenal, nncityp maxTime , nncityp maxLoop ,nncityp maxnoti, nncftyp mindesc,  nncftyp min_str, nncftyp max_str, nncityp seed, const bool weights, const bool idx_weights, const bool idx_input );
+    void learnRand2(
+        NNData  &data,
         CTVInt  &flods, nncityp multi,
         nncityp loops,
         nncityp subLoops,
@@ -120,6 +123,20 @@ public:
         const bool weights,
         const bool idx_weights,
         const bool idx_input
+    );
+
+
+    void learnRandWeights(
+        CNNData &data,
+        CNNData &test,
+        nncityp maxTime ,
+        nncityp maxLoop,
+        nncityp maxNotI,
+        nncftyp bigPenal,
+        nncftyp minStrength,
+        nncftyp maxStrength,
+        nncityp seed,
+        nncftyp pBack
     );
 
     int forceIdx( CNNData &data , nncftyp bigPenal, const time_t maxTime, const int maxLoops, const bool show );
@@ -137,6 +154,7 @@ public:
     void momentum2(CNNData &learn ,
         CNNData &test ,
         const time_t maxTime ,
+        nncityp maxLoops,
         nncityp maxFailsTest,
         nnftyp step,
         nncftyp maxStep,
@@ -189,6 +207,27 @@ public:
         const bool show = true
     );
 
+    QString weightsToString() const;
+
+    void batchGrDescent(
+        CNNData &learn ,          //MM: Data to learn.
+        CNNData &test ,           //MM: Data to test.
+        nncityp batchSize,
+        const time_t maxTime ,
+        nncityp maxLoops,
+        nnftyp  maxStep,
+        nncftyp minStep,
+        nncftyp mom,
+        nncftyp mom2,
+        nncftyp epsilon,
+        cultyp checkFrequency,
+        cutyp resetFrequency,
+        nncftyp bigPenal,
+        CTVFlt &toLearn,
+        cultyp rndSeed = 1,
+        NNNet *const bestTest = nullptr
+    );
+    void rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize );
 };
 
 

@@ -10,7 +10,7 @@ QT       -= gui
 TARGET = NNxCpp
 CONFIG   += console
 CONFIG   -= app_bundle
-CONFIG   += c++11
+CONFIG   += c++17
 
 TEMPLATE = app
 
@@ -48,7 +48,7 @@ HEADERS += \
     src/defs.h
 
 OTHER_FILES += \
-    nndef.txt \
+    nndef2.txt \
     nndef_out.txt \
     data.txt
 
