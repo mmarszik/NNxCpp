@@ -131,6 +131,41 @@ void NNData::split(
 }
 
 
+void NNData::norm(TVFlt& scaleInp, TVFlt& scaleOut) {
+    if( size() < 1 ) {
+        return;
+    }
+    scaleInp = at(0).getInps();
+    scaleOut = at(0).getOuts();
+    for( auto &i : scaleInp ) { i = std::abs(i); }
+    for( auto &i : scaleOut ) { i = std::abs(i); }
+    for( const NNRecord& r : *this ) {
+        for( nnityp i=0 ; i<sizeInp() ; i++ ) {
+            if( scaleInp[i] < std::abs(r.getInp(i)) ) {
+                scaleInp[i] = std::abs(r.getInp(i));
+            }
+        }
+        for( nnityp i=0 ; i<sizeOut() ; i++ ) {
+            if( scaleOut[i] < std::abs(r.getOut(i)) ) {
+                scaleOut[i] = std::abs(r.getOut(i));
+            }
+        }
+    }
+
+    for( NNRecord& r : *this ) {
+        for( nnityp i=0 ; i<sizeInp() ; i++ ) {
+            if( scaleInp[i] > 1E-12 ) {
+                r.getInpRef(i) /= scaleInp[i];
+            }
+        }
+        for( nnityp i=0 ; i<sizeOut() ; i++ ) {
+            if( scaleOut[i] > 1E-12 ) {
+                r.getOutRef(i) /= scaleOut[i];
+            }
+        }
+    }
+
+}
 
 
 //void Data::split(
@@ -193,10 +228,13 @@ void NNData::split(
 
 void NNData::shuffle( nncityp rndSeed ) {
     FRnd rnd(rndSeed);
-    for( nnityp i=0 ; i<size()-1 ; i++ ) {
-        qSwap( (*this)[ i ] , (*this)[ i + rnd.getI() % (size()-i) ] );
-    }
+    std::shuffle( begin() , end() , rnd );
 }
+
+void NNData::shuffle( FRnd& rnd ) {
+    std::shuffle( begin() , end() , rnd );
+}
+
 
 void NNData::shuffle( nncityp rndSeed , nncityp size ) {
     FRnd rnd(rndSeed);

@@ -2372,6 +2372,133 @@ QString NNNet::weightsToString() const {
 
 
 
+QString NNNet::makeDefNN(
+    nncityp        inpSize,
+    nncityp        biasIdx,
+    const TVFlt&   layers,
+    const QString& actFun,
+    const QString& outActFun,
+    nncftyp minWeightValue,
+    nncftyp maxWeightValue
+) {
+    QString out;
+
+    const auto cntWeights = [&layers,&inpSize] {
+        nnityp weightsSize = 0;
+        for( nnityp i=0 ; i<layers.size() ; i++ ) {
+            //QTextStream(stdout) << ( i==0 ? inpSize : layers[i-1]+1 ) * layers[i] << Qt::endl;
+            weightsSize += ( i==0 ? inpSize : layers[i-1]+1 ) * layers[i];
+        }
+        return weightsSize;
+    };
+
+    const auto cntNeurons = [&layers] {
+        nnityp neuronsSize = 0;
+        for( nnityp i=0 ; i<layers.size() ; i++ ) {
+            neuronsSize += layers[i];
+        }
+        return neuronsSize;
+    };
+
+    out += QString("size_inputs:        %1 # rozmiar wejścia\n").arg( inpSize );
+    out += QString("size_outputs:       %1 # rozmiar wyjścia\n").arg( 1 );
+    out += QString("size_neurons:       %1 # ilość neuronów\n").arg( cntNeurons() );
+    out += QString("size_weights:       %1 # ilość wag\n").arg( cntWeights() );
+    out += QString("size_convols:       %1 # ilość splotów\n").arg( 1 );
+    out += "\n";
+    out += QString("weights_penal: +0.000000000000000 # kara za duże wagi\n");
+    out += QString("signal_penal:  +0.000000000000000 # kara za duże sygnały\n");
+    out += QString("rnd_seed:       +1 # zarodek liczb losowych\n");
+
+    out += "\n";
+    out += QString("weights: %1, %2              # wagi\n").arg(minWeightValue).arg(maxWeightValue);
+
+    out += QString("endWeights # koniec wag\n");
+
+    out += "\n";
+
+    const auto genNeuron = [&out,&biasIdx](
+        nncityp neuronNo,
+        nncityp weightStart,
+        nncityp inputStart,
+        nncityp inpSize,
+        const QString& fAct,
+        const bool addBias
+    ) {
+        QString out;
+        out += QString("neuron: %1\n").arg(neuronNo);
+        out += QString("  actv:          %1\n").arg(fAct);
+        out += QString("  conv:          -1\n");
+        out += QString("  inp:           ");
+        if( addBias ) {
+            out += QString::number(biasIdx) + ", ";
+        }
+        for( nnityp i=0 ; i<inpSize ; i++ ) {
+            if( i > 0 ) { out += ", "; }
+            out += QString::number(i+inputStart);
+        }
+
+        out += QString("\n  rng_inputs:    %1, %2\n").arg(0).arg(inputStart+inpSize-1);
+        out += QString("  weights:       ");
+        for( nnityp i=0 ; i<inpSize+addBias ; i++ ) {
+            if( i > 0 ) { out += ", "; }
+            out += QString::number(i+weightStart);
+        }
+        out += QString("\n  rng_weights:   %1, %2\n").arg(weightStart).arg(weightStart+inpSize+addBias-1);
+        out += QString("  rng_size:      %1, %1\n").arg(inpSize+addBias);
+
+        out += "\n";
+        return out;
+    };
+
+    nnityp neuronNo = 0;
+    nnityp weightStart = 0;
+    nnityp inpStart = 0;
+    for( nnityp i=0 ; i<layers.size() ; i++ ) {
+        out += QString("# layer %1\n").arg( i );
+        nncityp inpSize2 = i==0 ? inpSize : layers[i-1];
+        const QString fAct = i+1 < layers.size() ? actFun : outActFun;
+        const bool addBias = i>0;
+        for( nnityp j=0 ; j<layers[i] ; j++ ) {
+            out += genNeuron(neuronNo,weightStart,inpStart,inpSize2,fAct,addBias);
+            neuronNo++;
+            weightStart += inpSize2 + addBias;
+        }
+        inpStart +=inpSize2;
+    }
+
+    out += "endNeurons\n";
+
+
+    return out;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2389,10 +2516,11 @@ void NNNet::batchGrDescent(
     nncityp batchSize,
     const time_t maxTime ,
     nncityp maxLoops,
-    nnftyp  maxStep,
+    nnftyp  step,
+    nncftyp maxStep,
     nncftyp minStep,
-    nncftyp mom,
-    nncftyp mom2,
+    nncftyp beta1,
+    nncftyp beta2,
     nncftyp epsilon,
     cultyp checkFrequency,
     cutyp resetFrequency,
@@ -2403,13 +2531,15 @@ void NNNet::batchGrDescent(
 ) {
     TVFlt m( sizeWeights() , 0 );
     TVFlt v( sizeWeights() , 0 );
-    TVFlt d( sizeWeights() , 0 );
+    TVFlt m1( sizeWeights() , 0 );
+    TVFlt v1( sizeWeights() , 0 );
+
+    //TVFlt d( sizeWeights() , 0 );
 
     QTextStream stdOut(stdout);
     stdOut.setRealNumberPrecision(6);
     stdOut.setRealNumberNotation( QTextStream::FixedNotation );
 
-    nnftyp step = maxStep;
 
     nnftyp learnError = error( learn , bigPenal );
     nnftyp testError  = 0;
@@ -2450,6 +2580,9 @@ void NNNet::batchGrDescent(
         return false;
     };
 
+    nnftyp _beta1 = beta1;
+    nnftyp _beta2 = beta2;
+
     const auto raport = [&] {
         stdOut << qSetFieldWidth(8) << loop;
         stdOut << qSetFieldWidth(0) << "] ";
@@ -2460,17 +2593,25 @@ void NNNet::batchGrDescent(
             stdOut << testSuccess << " " << testFails << " ";
         }
         stdOut << step << " ";
+        stdOut << fnorm( gradient(learn) ) << " ";
         stdOut << (currTime-start) << "s";
         stdOut << Qt::endl;
 
         nextShow = (currTime - lastShow) * 2;
-        if( nextShow > 10 ) {
-            nextShow = 10;
+        if( nextShow > 60 ) {
+            nextShow = 60;
         }
         lastShow = currTime;
     };
 
-    while( ( maxLoops>0 && loop<maxLoops) || (maxLoops==0 && currTime-start <= maxTime ) ) {
+    while(
+        step >= minStep &&
+        (
+            ( maxLoops>0 && loop<maxLoops)
+            ||
+            (maxLoops==0 && currTime-start <= maxTime )
+            )
+        ) {
         loop++;
         currTime = time(NULL);
 
@@ -2487,19 +2628,34 @@ void NNNet::batchGrDescent(
 
                 TVFlt g = gradient(batch,bigPenal);
                 makeToLearn( g , toLearn );
-                for( nnityp i=0 ; i<m.size() ; i++ ) {
-                    m[i] = m[i] * mom  + g[i] * (1.0-mom);
-                    v[i] = v[i] * mom2 + g[i] * g[i] * (1.0-mom2);
-                }
-                for( nnityp i=0 ; i<m.size() ; i++ ) {
-                    d[i] = m[i] / ( std::sqrt( v[i] ) + epsilon );
-                }
-                mkNorm( d );
 
-                for( nnityp i=0 ; i<g.size() ; i++ ) {
-                    weights[i] -= d[i] * step;
-                    if( weights[i] > max_w[i] ) weights[i] = max_w[i];
-                    if( weights[i] < min_w[i] ) weights[i] = min_w[i];
+                for( nnityp i=0 ; i<m.size() ; i++ ) {
+                    m[i] = m[i] * beta1 + g[i]        * (1.0-beta1);
+                    v[i] = v[i] * beta2 + g[i] * g[i] * (1.0-beta2);
+                    m1[i] = m[i] / (1.0 - _beta1);
+                    v1[i] = v[i] / (1.0 - _beta2);
+                }
+
+                {
+                    for( nnityp i=0 ; i<g.size() ; i++ ) {
+                        weights[i] -= step * m1[i] / ( std::sqrt( v1[i] ) + epsilon );
+                        if( weights[i] > max_w[i] ) weights[i] = max_w[i];
+                        if( weights[i] < min_w[i] ) weights[i] = min_w[i];
+                    }
+                    _beta1 *= beta1;
+                    _beta2 *= beta2;
+                }
+
+                {
+                    // for( nnityp i=0 ; i<m.size() ; i++ ) {
+                    //     d[i] = m[i] / ( std::sqrt( v[i] ) + epsilon );
+                    // }
+                    // mkNorm( d );
+                    // for( nnityp i=0 ; i<g.size() ; i++ ) {
+                    //     weights[i] -= d[i] * step;
+                    //     if( weights[i] > max_w[i] ) weights[i] = max_w[i];
+                    //     if( weights[i] < min_w[i] ) weights[i] = min_w[i];
+                    // }
                 }
             }
         }
@@ -2514,7 +2670,7 @@ void NNNet::batchGrDescent(
                     learnSuccess ++;
                     learnError = currLearnError;
                     bestWeights = weights;
-                    step *= 1.20;
+                    //step *= 1.10;
                     if( step > maxStep ) {
                         step = maxStep;
                     }
@@ -2539,11 +2695,9 @@ void NNNet::batchGrDescent(
                     for( nnityp i=0 ; i<m.size() ; i++ ) {
                         m[i] = v[i] = 0;
                     }
-                    failsSerie = 0;
+                    _beta1 = beta1;
+                    _beta2 = beta2;
                     step *= 0.5;
-                    if( step < minStep ) {
-                        step = minStep;
-                    }
                 }
             }
 
@@ -2559,11 +2713,6 @@ void NNNet::batchGrDescent(
     weights = bestWeights;
 
 }
-
-
-
-
-
 
 
 

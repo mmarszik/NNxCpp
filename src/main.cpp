@@ -10,6 +10,7 @@
 
 using namespace NsNet;
 
+#ifdef UNDEFINED
 double classify(CNNData &data, const NNNet &nn) {
 
     int rightClass = 0;
@@ -716,11 +717,12 @@ void experimentB() {
 
 void experimentC() {
     QTextStream stdOut(stdout);
-    const int learnSize = 80000;
+    const int learnSize = 360000;
     NNData learn, test;
     {
         FRnd rnd(1);
         CNNData data = NNData::mkData(false,0,4,0,3,5,"/home/m/tmp/test_data.csv",",");
+        stdOut << "readed:" << data.size() << Qt::endl;
         data.split( learn , learnSize, test, data.size()-learnSize, rnd() );
     }
 
@@ -761,19 +763,39 @@ void experimentC() {
 
 }
 
+#endif
+
 
 void experimentX() {
     QTextStream stdOut(stdout);
-    const int learnSize = 200000;
+    const int learnSize = 800000;
     NNData learn, test;
     {
         FRnd rnd(1);
         //CNNData data = NNData::mkData(false,0,3,0,2,1,"/home/m/tmp/tree_reg_test.csv",",");
-        CNNData data = NNData::mkData(false,0,57,0,56,1,"/home/m/.local/share/SoftwareMariuszMarszalkowski/MxDotsAndBoxes/input_tree_22_6x6.tail.5pp",",");
+        NNData data = NNData::mkData(false,0,57,0,56,1,"/home/m/.local/share/SoftwareMariuszMarszalkowski/MxDotsAndBoxes/input_tree_22_6x6.tail.Npp",",");
+
+        if( false ) {
+            TVFlt scaleInp,scaleOut;
+            data.norm(scaleInp,scaleOut);
+            stdOut << "scaling: ";
+            for( const auto i : scaleInp ) {
+                stdOut << i << ", ";
+            }
+            for( const auto i : scaleOut ) {
+                stdOut << i << ", ";
+            }
+            stdOut << Qt::endl;
+        }
+
         stdOut << "data.size == " << data.size() << Qt::endl;
         data.split( learn , learnSize, test, data.size()-learnSize, rnd() );
 
     }
+
+    stdOut << "learn.size == " << learn.size() << Qt::endl;
+    stdOut << "test.size == " << test.size() << Qt::endl;
+
 
     //  const unsigned long long rndSeed = 1171629261;
     const unsigned long long rndSeed = 1;//std::random_device()();
@@ -782,7 +804,7 @@ void experimentX() {
     FRnd rnd( rndSeed );
 
     const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-99;
+    nnftyp bigPenal = 1E-12;
 
     NNNet nn;
     nn.read("nndef2.txt" );
@@ -790,8 +812,9 @@ void experimentX() {
 
     stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
 
-    nn.rndWeightsHe( rnd , 0, 455, 57 );
-    nn.rndWeightsHe( rnd , 456, 536, 9 );
+    nn.rndWeightsHe( rnd ,    0, 1139, 57 );
+    nn.rndWeightsHe( rnd , 1140, 1360, 11 );
+
     stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
 
     if( false )
@@ -810,16 +833,24 @@ void experimentX() {
         stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
     }
 
+
+
     if( true )
     {
-        // NNData learn2 = learn.rndSelect(100,rnd());
-        // nn.learnRand1( learn2, 1E-2, 10, 0 , 0, 1E-20, 0.0001 , 0.01 , rnd(), true, false, false );
-        NNNet bestTest;
-        nn.batchGrDescent( learn, test, 32, 240, 0, 0.1, 0.0000001, 0.9, 0.98, 0.00000001, 5, 4, bigPenal, CTVFlt(), rnd(), &bestTest );
+//        NNData learn2 = learn.rndSelect(100,rnd());
+        //nn.learnRand1( learn, 1E-2, 60, 0 , 0, 1E-20, 0.0001 , 0.01 , rnd(), true, false, false );
         stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
-        stdOut << bestTest.weightsToString() << Qt::endl;
-        stdOut << nn.weightsToString() << Qt::endl;
+        NNNet bestTest;
+        nn.batchGrDescent( learn, test, 32, 6*3600, 0, 0.0005, 0.1, 0.0001, 0.9, 0.999, 0.00000001, 5, 4, bigPenal, CTVFlt(), rnd(), &bestTest );
+        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
         {
+            nn.save( "nndef_out.txt" );
+            bestTest.save( "nndef_out_test.txt" );
+
+            stdOut << Qt::endl;
+            stdOut << bestTest.weightsToString() << Qt::endl;
+            stdOut << Qt::endl;
+            stdOut << nn.weightsToString() << Qt::endl;
             nncityp tIdx = rnd() % test.size();
             for( nnityp i=0 ; i<test[tIdx].sizeInp() ; i++ ) {
                 stdOut << test[tIdx].getInp(i) << ",";
@@ -897,7 +928,6 @@ void experimentX() {
 
     //    nn.momentum2( subLearn , CNNData(), 1800, 0, 0.001, 0.1, 1E-9, 0.8, CTVFlt(), bigPenal, 3, nullptr);
     //    stdOut << "subLearn.size=" << subLearn.size() << " nn.sizeWeights=" << nn.sizeWeights() << " learn error=" << nn.error( subLearn , bigPenal ) << " class test=" << classify( test ,nn ) << "% class learn=" << classify( subLearn ,nn ) << "% time=" << (time(NULL)-start) << "s" << endl;
-    //    nn.save( "nndef_out.txt" );
 
     //    nn.toUniqueWeights();
 
@@ -906,9 +936,19 @@ void experimentX() {
 }
 
 
-
 int main(int argc, char *argv[])
 {
+    if( false ) {
+        QTextStream(stdout) << NNNet::makeDefNN(
+            57,
+            0,
+            {20,10,1},
+            "lrelu",
+            "lin"
+        );
+        exit(0);
+    }
+
     experimentX();
     return 0;
 }

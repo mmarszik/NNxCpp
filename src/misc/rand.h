@@ -4,11 +4,11 @@
 #include "src/defs.h"
 #include "critical.h"
 
-class FRnd : public std::ranlux48 {
+class FRnd : public std::mt19937_64 {
 private:
     std::uniform_real_distribution<ftyp> fdist;
 public:
-    FRnd( cutyp seed ):std::ranlux48( seed ),fdist(0.0,1.0) {
+    FRnd( cutyp seed ):std::mt19937_64( seed ),fdist(0.0,1.0) {
     }
 
     ftyp getF() {

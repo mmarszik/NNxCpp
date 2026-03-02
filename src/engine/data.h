@@ -22,8 +22,10 @@ public:
         desc(desc), inp(inp), out(out) {
     }
     const QString& getDesc(nncityp nr) const { return desc[nr]; }
-    nnftyp getInp (nncityp nr) const { return inp[nr];  }
-    nnftyp getOut (nncityp nr) const { return out[nr];  }
+    nnftyp getInp(nncityp nr) const { return inp[nr];  }
+    nnftyp getOut(nncityp nr) const { return out[nr];  }
+    nnftyp& getInpRef(nncityp nr) { return inp[nr];  }
+    nnftyp& getOutRef(nncityp nr) { return out[nr];  }
 
     const QVector<QString>& getDescs() const { return desc; }
     CTVFlt& getInps() const { return inp; }
@@ -147,8 +149,11 @@ public:
         nncityp rndSeed
     ) const;
 
+    void shuffle( FRnd& rnd );
     void shuffle( nncityp rndSeed );
     void shuffle( nncityp rndSeed , nncityp size );
+
+    void norm(TVFlt& scaleInp, TVFlt& scaleOut);
 
 };
 

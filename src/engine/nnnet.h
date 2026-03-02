@@ -215,19 +215,30 @@ public:
         nncityp batchSize,
         const time_t maxTime ,
         nncityp maxLoops,
-        nnftyp  maxStep,
+        nnftyp  step,
+        nncftyp maxStep,
         nncftyp minStep,
-        nncftyp mom,
+        nncftyp mom1,
         nncftyp mom2,
         nncftyp epsilon,
         cultyp checkFrequency,
         cutyp resetFrequency,
         nncftyp bigPenal,
         CTVFlt &toLearn,
-        cultyp rndSeed = 1,
-        NNNet *const bestTest = nullptr
+        cultyp rndSeed,
+        NNNet *const bestTest
     );
     void rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize );
+
+    static QString makeDefNN(
+        nncityp        inpSize,
+        nncityp        biasIdx,
+        const TVFlt&   layers,
+        const QString& actFun,
+        const QString& outActFun,
+        nncftyp minWeightValue=-1000,
+        nncftyp maxWeightValue=+1000
+    ) ;
 };
 
 
