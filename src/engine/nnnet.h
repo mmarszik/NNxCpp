@@ -108,7 +108,7 @@ public:
     void grDescent( CNNData &data , nncityp loops , nncftyp step , CTVFlt &tolearn, nncftyp min_error=0.000001, nnityp subloops=40 , nnityp show=1 );
     void rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn);
     void momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom, CTVFlt &tolearn, nncftyp min_error, nncftyp bigpenal, nnityp subloops , nnityp show=1);
-    void bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step );
+    void bfgs( CNNData &data , CNNData &test , TVInt sub , nncityp noTestLoops, nncityp loops, nncftyp step, NNNet *const bestTest = nullptr );
     void learnRand1(CNNData &data ,CNNData &testData , nncftyp bigPenal, nncityp maxTime , nncityp maxLoop ,nncityp maxnoti, nncftyp mindesc,  nncftyp min_str, nncftyp max_str, nncityp seed, const bool weights, const bool idx_weights, const bool idx_input );
     void learnRand2(
         NNData  &data,        
@@ -237,7 +237,7 @@ public:
         NNNet *const bestTest = nullptr,
         const std::function<void(const AdamInfo&)>& callBack = [](const AdamInfo&){}
     );
-    void rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize );
+    void rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize, nncftyp scale = 1.0 );
 
     static QString makeDefNN(
         nncityp        inpSize,

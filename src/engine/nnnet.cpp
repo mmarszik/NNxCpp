@@ -911,8 +911,13 @@ static void minDir( TVFlt &weights , CTVFlt &p , CTVInt &sub , nncftyp step ) {
     }
 }
 
-void NNNet::bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step ) {
+void NNNet::bfgs(CNNData &data , CNNData &test , TVInt sub , nncityp noTestLoops, nncityp loops, nncftyp step , NNNet * const bestTest) {
     QTextStream stdo(stdout);
+    if( sub.size()==0 ) {
+        for( nnityp i=0 ; i<sizeWeights() ; i++ ) {
+            sub.emplace_back(i);
+        }
+    }
     nncityp size = sub.size();                   // Skrót do rozmiaru pod zbioru optymalizowanych wag.
     TVFlt g = subGradient( data , sub );         // Gradient
     nnftyp ng = fnorm(g);                        // Norma gradientu.
@@ -920,11 +925,12 @@ void NNNet::bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step ) {
     TVFlt s(size), r(size), rv(size), vr(size);  // Wektory pomocnicze.
     TVFlt hes( size * size );                    // Hesjan.
     nnftyp er1 = error( data );                  // Błąd.
+    nnftyp erT1 = error( test );                 // Błąd.
     TVFlt best = weights;                        // Kopia najlepszych wag.
     nnityp fail  =  0;                           // Ilość nieudanych kroków.
     nnityp reset = 10;                           // Pewna odległość od resetu
     bfgsResetHes( hes );                         // Reset hesjanu.
-    for( nnityp loop=0 ; loop<loops && ng > 1E-6 ; loop++ ) {
+    for( nnityp loop=0,testFails=0 ; loop<loops && ng > 1E-6 ; loop++ ) {
         CTVFlt prev = weights;                   // kopia wag
         CTVFlt p = bfgsDir( hes , g );           // znormalizowany kierunek zgodny z bfgs
         minDir( weights , p , sub , step / reset ); // Zanim hesjan dobrze się nie uaktualni, zmniejszamy krok.
@@ -938,10 +944,22 @@ void NNNet::bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step ) {
             fail ++ ;
         }
 
+        nncftyp erT2 = error( test );
+        if( erT2 < erT1 - 1E-6 ) {
+            erT1 = erT2;
+            testFails = 0;
+            if( bestTest != nullptr ) {
+                *bestTest = *this;
+            }
+        } else {
+            testFails++;
+        }
+
+
         pg = g;
         g = subGradient( data, sub );
         ng = fnorm( g );
-        stdo << loop << " " << er1 << " " << ng << " " << reset << " " << fail << Qt::endl;
+        stdo << loop << " " << er1 << " " << erT1 << " " << ng << " " << reset << " " << fail << Qt::endl;
 
         if( fail >= 6 )
             break;
@@ -1045,10 +1063,10 @@ void NNNet::randIdxW(FRnd &rnd, nncftyp min, nncftyp max, nncityp maxTry) {
     }
 }
 
-void NNNet::rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize ) {
+void NNNet::rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize, nncftyp scale ) {
     std::normal_distribution<nnftyp> d( 0.0 ,  std::sqrt( 2.0 / inpSize ) );
     for( nnityp i=start ; i<=end ; i++ ) {
-        weights[i] = d(rnd);
+        weights[i] = d(rnd) * scale;
         if( weights[i] < min_w[i] ) {
             weights[i] = min_w[i];
         }
