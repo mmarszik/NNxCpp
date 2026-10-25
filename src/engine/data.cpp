@@ -18,13 +18,13 @@ NNData NNData::mkData(
     nncityp size_out,       // ilość wyjść
     const QString &path , // ścieżka do pliku
     const QString &sep  ,  // separator pola
-    nncityp skipPermile ,  // promil ominiętych danych
+    const nncftyp pSkip ,  // prawdopodobnieństw ominięcia rekordu
     nncityp skipSeed       // random seed do omijania wierszy
 ) {
     bool ok;
     NNData data;
 
-    PEXCP( skipPermile >= 0 && skipPermile < 1000 );
+    PEXCP( pSkip >= 0 && pSkip < 1.0 );
 
     QFile file(path);
     PEXCP( file.open( QFile::ReadOnly ) );
@@ -34,10 +34,19 @@ NNData NNData::mkData(
     QRegularExpression rx(sep);
 
     std::mt19937_64 rnd( skipSeed );
+    std::uniform_real_distribution d(0.0,1.0);
     QString line;
     for( nnityp row=0 ; ! (line = stream.readLine()).isNull() ; row++ ) {
-        line = line.simplified();
-        const QStringList list = line.split( rx , Qt::KeepEmptyParts );
+        if( row==0 && heads ) {
+            const QStringList list = line.simplified().split( rx , Qt::KeepEmptyParts );
+            data.setHeads( list.toVector() );
+            continue;
+        }
+        if( d(rnd) < pSkip ) {
+            continue;
+        }
+
+        const QStringList list = line.simplified().split( rx , Qt::KeepEmptyParts );
 
         if( list.size() != size ) {
             printf("%s" , qPrintable( QString("list.size() != size\n%1 != %2\n").arg(list.size()).arg(size) ) );
@@ -45,26 +54,20 @@ NNData NNData::mkData(
         }
         PEXCP( list.size() == size );
 
-        if( row==0 && heads ) {
-            data.setHeads( list.toVector() );
-        } else {
-            NNRecord r;
-            if( rnd() % 1000 >= skipPermile ) {
-                for( nnityp i=0 ; i<size ; i++ ) {
-                    if( i < size_desc ) {
-                        r.appendDesc( list[i] );
-                    } else if( i < size_desc + size_inp ) {
-                        if( i-size_desc >= begin_inp && i-size_desc <= end_inp ) {
-                            r.appendInp( QString(list[i]).replace( "," , "." ).toDouble(&ok) );
-                            EXCP( ok );
-                        }
-                    } else {
-                        r.appendOut( QString(list[i]).replace( "," , "." ).toDouble(&ok) );  EXCP( ok );
-                    }
+        NNRecord r;
+        for( nnityp i=0 ; i<size ; i++ ) {
+            if( i < size_desc ) {
+                r.appendDesc( list[i] );
+            } else if( i < size_desc + size_inp ) {
+                if( i-size_desc >= begin_inp && i-size_desc <= end_inp ) {
+                    r.appendInp( QString(list[i]).replace( "," , "." ).toDouble(&ok) );
+                    EXCP( ok );
                 }
-                data.append( r );
+            } else {
+                r.appendOut( QString(list[i]).replace( "," , "." ).toDouble(&ok) );  EXCP( ok );
             }
         }
+        data.append( r );
     }
 
     return data;

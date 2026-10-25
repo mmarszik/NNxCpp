@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <QString>
 #include "src/defs.h"
 #include "src/misc/rand.h"
@@ -108,9 +109,9 @@ public:
     void rawMomentum( CNNData &data , nncityp loops , nncftyp step , TVFlt &p , nncftyp mom,  nncftyp bigpenal, CTVFlt &tolearn);
     void momentum(CNNData &data , nncityp loops , nncftyp step , nncftyp mom, CTVFlt &tolearn, nncftyp min_error, nncftyp bigpenal, nnityp subloops , nnityp show=1);
     void bfgs( CNNData &data , CTVInt &sub , nncityp loops, nncftyp step );
-    void learnRand1(CNNData &data , nncftyp bigPenal, nncityp maxTime , nncityp maxLoop ,nncityp maxnoti, nncftyp mindesc,  nncftyp min_str, nncftyp max_str, nncityp seed, const bool weights, const bool idx_weights, const bool idx_input );
+    void learnRand1(CNNData &data ,CNNData &testData , nncftyp bigPenal, nncityp maxTime , nncityp maxLoop ,nncityp maxnoti, nncftyp mindesc,  nncftyp min_str, nncftyp max_str, nncityp seed, const bool weights, const bool idx_weights, const bool idx_input );
     void learnRand2(
-        NNData  &data,
+        NNData  &data,        
         CTVInt  &flods, nncityp multi,
         nncityp loops,
         nncityp subLoops,
@@ -207,26 +208,34 @@ public:
         const bool show = true
     );
 
-    QString weightsToString() const;
+    QString weightsToString(const char sep=',') const;
 
-    void batchGrDescent(
+    struct AdamInfo {
+        nnftyp learnError;
+        nnityp loop;
+    };
+
+    void adam(
         CNNData &learn ,          //MM: Data to learn.
         CNNData &test ,           //MM: Data to test.
         nncityp batchSize,
         const time_t maxTime ,
         nncityp maxLoops,
+        nncftyp maxErrDrop,  // stop if startError > currError * maxErrDrop
         nnftyp  step,
         nncftyp maxStep,
         nncftyp minStep,
-        nncftyp mom1,
-        nncftyp mom2,
+        nncftyp beta1,
+        nncftyp beta2,
         nncftyp epsilon,
         cultyp checkFrequency,
         cutyp resetFrequency,
+        const bool isNorm,
         nncftyp bigPenal,
         CTVFlt &toLearn,
         cultyp rndSeed,
-        NNNet *const bestTest
+        NNNet *const bestTest = nullptr,
+        const std::function<void(const AdamInfo&)>& callBack = [](const AdamInfo&){}
     );
     void rndWeightsHe( FRnd &rnd , nncityp start, nncityp end, nncityp inpSize );
 

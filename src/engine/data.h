@@ -108,15 +108,15 @@ public:
     }
 
     static NNData mkData(
-        const bool heads,      // czy kolumny mają nagłówki?
+        const bool heads,       // czy kolumny mają nagłówki?
         nncityp size_desc,      // ilość pól opisowych
         nncityp size_inp,       // ilość wejść
         nncityp begin_inp,      // początkowe wejście
         nncityp end_inp,        // końcowe wejście
         nncityp size_out,       // ilość wyjść
-        const QString &path,   // ścieżka do pliku
+        const QString &path,    // ścieżka do pliku
         const QString &sep,     // separator pola
-        nncityp skipPermile=0 , // promil ominiętych danych
+        const nncftyp pSkip ,   // prawdopodobnieństw ominięcia rekordu
         nncityp skipSeed=1234   // random seed do omijania wierszy
 
     );

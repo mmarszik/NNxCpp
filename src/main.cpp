@@ -1,3 +1,4 @@
+
 #include <QVector>
 #include <cmath>
 #include <QTextStream>
@@ -766,100 +767,157 @@ void experimentC() {
 #endif
 
 
+//For Dots And Boxes
 void experimentX() {
     QTextStream stdOut(stdout);
-    const int learnSize = 800000;
-    NNData learn, test;
+    QTextStream stdErr(stderr);
+    //const int learnSize = 30000;
+    const double pSkip = 0.99;
+    const double testPerctn = 0.15;
+    NNData learnData, testData;
+
+    //Spliting data
     {
         FRnd rnd(1);
         //CNNData data = NNData::mkData(false,0,3,0,2,1,"/home/m/tmp/tree_reg_test.csv",",");
-        NNData data = NNData::mkData(false,0,57,0,56,1,"/home/m/.local/share/SoftwareMariuszMarszalkowski/MxDotsAndBoxes/input_tree_22_6x6.tail.Npp",",");
-
-        if( false ) {
-            TVFlt scaleInp,scaleOut;
-            data.norm(scaleInp,scaleOut);
-            stdOut << "scaling: ";
-            for( const auto i : scaleInp ) {
-                stdOut << i << ", ";
-            }
-            for( const auto i : scaleOut ) {
-                stdOut << i << ", ";
-            }
-            stdOut << Qt::endl;
-        }
-
+        //NNData data = NNData::mkData(false,0,57,0,56,1,"/home/m/.local/share/SoftwareMariuszMarszalkowski/MxDotsAndBoxes/input_tree_22_6x6.unique",",",pSkip);
+        NNData data = NNData::mkData(false,0,118,0,119,1,"/home/m/.local/share/SoftwareMariuszMarszalkowski/MxDotsAndBoxes/input_evol_nn_33_6x6.unique",",",pSkip);
         stdOut << "data.size == " << data.size() << Qt::endl;
-        data.split( learn , learnSize, test, data.size()-learnSize, rnd() );
-
+        if( testPerctn > 0 ) {
+            data.split( testData , data.size()*testPerctn, learnData, data.size()-data.size()*testPerctn, rnd() );
+        } else {
+            learnData = data;
+        }
     }
 
-    stdOut << "learn.size == " << learn.size() << Qt::endl;
-    stdOut << "test.size == " << test.size() << Qt::endl;
+    stdOut << "learn.size == " << learnData.size() << Qt::endl;
+    stdOut << "test.size == " << testData.size() << Qt::endl;
 
 
-    //  const unsigned long long rndSeed = 1171629261;
-    const unsigned long long rndSeed = 1;//std::random_device()();
+    const unsigned long long rndSeed = std::random_device()();
 
     stdOut << "rndSeed=" << rndSeed << Qt::endl;
     FRnd rnd( rndSeed );
 
-    const time_t start = time(NULL);
-    nnftyp bigPenal = 1E-12;
+    nnftyp bigPenal = 1E-12 ;
 
     NNNet nn;
     nn.read("nndef2.txt" );
 
 
-    stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+    stdOut << "test error:" << nn.error( testData , bigPenal ) << "; learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
 
-    nn.rndWeightsHe( rnd ,    0, 1139, 57 );
-    nn.rndWeightsHe( rnd , 1140, 1360, 11 );
+    nn.rndWeightsHe( rnd ,   0,  nn.sizeWeights()-1, 118 );
 
-    stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
 
-    if( false )
-    {
-        NNData learn2,test2;
-        learn.split(learn2,200,test2,200, rnd() );
-        stdOut << "test2 error:" << nn.error( test2 , bigPenal ) << "; learn2 error:" << nn.error( learn2 , bigPenal ) << Qt::endl;
-        nn.learnRandWeights( learn2, test2, 10, 0, 0, bigPenal, 0.0001 , 0.01 , rnd(), 0.40 );
-        stdOut << "test2 error:" << nn.error( test2 , bigPenal ) << "; learn2 error:" << nn.error( learn2 , bigPenal ) << Qt::endl;
-        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
+    nn.rndWeightsHe( rnd ,      0,  1887, 118 );
+    nn.rndWeightsHe( rnd ,   1888,  2431,  16 );
+    nn.rndWeightsHe( rnd ,   2432,  3487,  32 );
+    nn.rndWeightsHe( rnd ,   3488,  3520,  32 );
+
+
+    // nn.rndWeightsHe( rnd , 1140, 1160, 20 );
+    //nn.randWeights( rnd , -0.001 , +0.001 );
+
+    if( testData.size() > 0 ) {
+        stdOut << "test error:" << nn.error( testData , bigPenal ) << Qt::endl;
     }
-
-    if( false )
-    {
-        nn.momentum2( learn , CNNData(), 120, 0, 0, 0.5, 10, 1E-12, 0.50, CTVFlt(), bigPenal, 3, nullptr);
-        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
-    }
+    stdOut << "learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
 
 
+    //evolution initialization
+    if( false ) {
+        NNData subLearn,subTest;
+        const std::size_t testSize = learnData.size() * 0.01;
+        learnData.split( subTest , testSize , subLearn , learnData.size() - testSize, rnd() );
+        nnftyp error = nn.error( subTest , bigPenal );
+        std::size_t microLearnSize = std::min<int>( 500 , subLearn.size() );
+        nnftyp bigPenal = 1E-1;
+        nnftyp step = 0.00001;
+        for( int i=0 ; i<200 ; i++ ) {
+            const NNData microLearn = subLearn.rndSelect( microLearnSize , rnd() );
+            nn.learnRand1( microLearn, NNData(), bigPenal, 0, microLearnSize , 0, 1E-20, step/10 , step*10 , rnd(), true, false, false );
 
-    if( true )
-    {
-//        NNData learn2 = learn.rndSelect(100,rnd());
-        //nn.learnRand1( learn, 1E-2, 60, 0 , 0, 1E-20, 0.0001 , 0.01 , rnd(), true, false, false );
-        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
-        NNNet bestTest;
-        nn.batchGrDescent( learn, test, 32, 6*3600, 0, 0.0005, 0.1, 0.0001, 0.9, 0.999, 0.00000001, 5, 4, bigPenal, CTVFlt(), rnd(), &bestTest );
-        stdOut << "test error:" << nn.error( test , bigPenal ) << "; learn error:" << nn.error( learn , bigPenal ) << Qt::endl;
-        {
-            nn.save( "nndef_out.txt" );
-            bestTest.save( "nndef_out_test.txt" );
-
-            stdOut << Qt::endl;
-            stdOut << bestTest.weightsToString() << Qt::endl;
-            stdOut << Qt::endl;
-            stdOut << nn.weightsToString() << Qt::endl;
-            nncityp tIdx = rnd() % test.size();
-            for( nnityp i=0 ; i<test[tIdx].sizeInp() ; i++ ) {
-                stdOut << test[tIdx].getInp(i) << ",";
+            if( testData.size() > 0 ) {
+                stdOut << "test error:" << nn.error( testData , bigPenal ) << Qt::endl;
             }
-            stdOut << Qt::endl;
-            stdOut << " --> " << QString::number(bestTest.compute( test[tIdx].getInps() )[0] , 'f', 12 ) << Qt::endl;
+            if( i % 10 == 0 ) {
+                stdOut << "learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
+            }
+
+            {
+                nncftyp tmp = nn.error( subTest , bigPenal );
+                if( tmp <= error ) {
+                    error = tmp;
+                    step *= 2;
+                } else {
+                    step *= 0.5;
+                    microLearnSize = std::min<int>( microLearnSize+500 , learnData.size() );
+                }
+            }
+
         }
+    }
+
+    // NNNet bestTest = nn;
+    // for( int i=0 ; i<1000 ; i++ ) {
+    //     nn.adam( learnData, testData, 32, 0, 0, 0.95, 0.0001, 0.0001, 1E-12, 0.9, 0.9999, 1E-8, 4, 32, false, bigPenal, CTVFlt(), rnd(), &bestTest );
+    //     stdOut << "/*MES:" << nn.error( learnData , bigPenal ) << "; weights: */{" << nn.weightsToString() << "}," << Qt::endl;
+    // }
+
+
+    NNNet bestTest = nn;
+    {
+        nnftyp prevError = nn.error( learnData , bigPenal );
+        nnityp prevLoop  = 0;
+        const auto adamCallback = [&](const NNNet::AdamInfo& adamInfo) {
+            if( adamInfo.loop > 50 ) {
+            if( prevError * 0.95 >= adamInfo.learnError || prevLoop + 50 < adamInfo.loop ) {
+                prevError = adamInfo.learnError;
+                prevLoop  = adamInfo.loop;
+                if( true )
+                {
+                    stdErr << "learn weights:" << nn.weightsToString(' ') << Qt::endl;
+                    stdErr << "test weights:" << bestTest.weightsToString(' ') << Qt::endl;
+                }
+            } }
+        };
+//        nn.adam( learnData, testData, 32, 4*3600, 0, 0.00, 0.05, 0.2, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+//        nn.adam( learnData, testData, 128, 4*3600, 0, 0.00, 0.05, 0.2, 1E-12, 0.9, 0.99, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+//        nn.adam( learnData, testData, 128, 4*3600, 0, 0.00, 0.05, 0.2, 1E-12, 0.9, 0.999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+//        nn.adam( learnData, testData, 128, 4*3600, 0, 0.00, 0.05, 0.2, 1E-12, 0.9, 0.999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+//        nn.adam( learnData, testData, 128, 1800, 0, 0.00, 0.01, 0.2, 1E-12, 0.9, 0.999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+
+        //nn.adam( learnData, testData, 128, 4*3600, 0, 0.00, 0.0001, 0.0001, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+        nn.bfgs( learnData, {}, 100, 0.1 );
+
 
     }
+
+    if( testData.size() > 0 ) {
+        stdOut << "best test weights: " << bestTest.weightsToString(' ') << Qt::endl;
+        stdOut << Qt::endl;
+    }
+    stdOut << "learn weights: " << nn.weightsToString(' ') << Qt::endl;
+    if( testData.size() > 0 ) {
+        stdOut << "test error:" << nn.error( testData , bigPenal ) << Qt::endl;
+    }
+    stdOut << "learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
+    nn.save( "nndef_out.txt" );
+    bestTest.save( "nndef_out_test.txt" );
+
+
+    {
+        stdOut << Qt::endl;
+        nncityp tIdx = rnd() % learnData.size();
+        for( nnityp i=0 ; i<learnData[tIdx].sizeInp() ; i++ ) {
+            stdOut << learnData[tIdx].getInp(i) << ",";
+        }
+        stdOut << Qt::endl;
+        stdOut << " --> " << QString::number(nn.compute( learnData[tIdx].getInps() )[0] , 'f', 12 ) << Qt::endl;
+        stdOut << "end\n";
+    }
+
 
 
 
@@ -938,17 +996,20 @@ void experimentX() {
 
 int main(int argc, char *argv[])
 {
-    if( false ) {
-        QTextStream(stdout) << NNNet::makeDefNN(
-            57,
+    if( true ) {
+        QFile f("nndef2.txt");
+        f.open(QFile::WriteOnly);
+        QTextStream(&f) << NNNet::makeDefNN(
+            118,
             0,
-            {20,10,1},
+            {16,32,32,1},
             "lrelu",
             "lin"
         );
-        exit(0);
     }
 
-    experimentX();
+    for( int i=0 ; i<999 ; i++ ) {
+        experimentX();
+    }
     return 0;
 }
