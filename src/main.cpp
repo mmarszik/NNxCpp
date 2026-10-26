@@ -805,16 +805,25 @@ void experimentX() {
     nn.read("nndef2.txt" );
 
     stdOut << "test error:" << nn.error( testData , bigPenal ) << "; learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
+    nn.randWeights( rnd ,  -0.01 , +0.01 );
+    stdOut << "test error:" << nn.error( testData , bigPenal ) << "; learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
 
-    // nn.randWeights( rnd ,  -0.01 , +0.01 );
-    // stdOut << "test error:" << nn.error( testData , bigPenal ) << "; learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
+    nn.rndWeightsHe( rnd ,   0,  nn.sizeWeights()-1, 118 );
 
-    // nn.rndWeightsHe( rnd ,   0,  nn.sizeWeights()-1, 118 );
+    // //24-24-1
+    // nn.rndWeightsHe( rnd ,      0,  2831, 118, 1.0 );
+    // nn.rndWeightsHe( rnd ,   2832,  3456,  24, 1.0 );
 
+    //16-32-32-32-1
+    // nn.rndWeightsHe( rnd ,      0,  1887, 118, 1.0 );
+    // nn.rndWeightsHe( rnd ,   1888,  2431,  16, 1.0  );
+    // nn.rndWeightsHe( rnd ,   2432,  3487,  32, 1.0  );
+    // nn.rndWeightsHe( rnd ,   3488,  3520,  32, 1.0  );
+    // nn.rndWeightsHe( rnd ,   3521,  4576,  32, 1.0  );
+
+    //16-32-32-1
     nn.rndWeightsHe( rnd ,      0,  1887, 118, 1.0 );
-    nn.rndWeightsHe( rnd ,   1888,  2431,  16, 1.0  );
-    nn.rndWeightsHe( rnd ,   2432,  3487,  32, 1.0  );
-    nn.rndWeightsHe( rnd ,   3488,  3520,  32, 1.0  );
+    nn.rndWeightsHe( rnd ,   1888,  3520,  32, 1.0  );
 
 
     // nn.rndWeightsHe( rnd , 1140, 1160, 20 );
@@ -898,7 +907,12 @@ void experimentX() {
             nn.adam( subLearn, subTest, 16, 0, 150, 0.00, 0.01, 0.02, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest );
             nn = bestTest;
         }
-        nn.adam( learnData, testData, 16, 4*3600, 0, 0.00, 0.01, 0.02, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+        //nn.adam( learnData, testData, 16, 4*3600, 0, 0.00, 0.01, 0.02, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+        //nn.adam( learnData, testData, 16, 4*3600, 0, 0.00, 0.1, 1.0, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+        nn.adam( learnData, testData, 64, 4*3600, 0, 0.00, 0.05, 0.1, 1E-12, 0.9, 0.9999, 1E-8, 2, 4, false, bigPenal, CTVFlt(), rnd(), &bestTest, adamCallback );
+
+
+
         //nn.bfgs( learnData, testData, {}, 30, 1E9, 0.1, &bestTest );
 
 
