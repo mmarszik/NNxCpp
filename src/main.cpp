@@ -773,7 +773,7 @@ void experimentX() {
     QTextStream stdErr(stderr);
     //const int learnSize = 30000;
     const double pSkip = 0.0;
-    const double testPerctn = 0.15;
+    const double testPerctn = 0.001;
     NNData learnData, testData;
 
     //Spliting data
@@ -809,6 +809,15 @@ void experimentX() {
     stdOut << "test error:" << nn.error( testData , bigPenal ) << "; learn error:" << nn.error( learnData , bigPenal ) << Qt::endl;
 
     nn.rndWeightsHe( rnd ,   0,  nn.sizeWeights()-1, 118 );
+
+    if( true ) {
+        const time_t start = time(NULL);
+        for( int i=0 ; i<30 ; i++ ) {
+            stdOut << i << "] learn error:" << nn.error( learnData , bigPenal ) << "; time:" << (time(NULL)-start) << "s" << Qt::endl;
+        }
+        exit(0);
+    }
+
 
     // //24-24-1
     // nn.rndWeightsHe( rnd ,      0,  2831, 118, 1.0 );
